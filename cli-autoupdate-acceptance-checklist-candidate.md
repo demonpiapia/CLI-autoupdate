@@ -1,8 +1,8 @@
 # CLI 自动升级 验收 checklist（候选）
 
-> **版本**：acceptance-checklist-candidate（对齐 `SPEC-v0.2.8.md` 冻结候选，2026-09-16）。
+> **版本**：acceptance-checklist-candidate（对齐 `SPEC-v0.2.9.md` 冻结候选，2026-09-16）。
 > **定位**：Executor/测试层产物。SPEC 是 Plan/契约（定义"该做什么"），本 checklist 是验收契约（定义"怎么证明做到了"），**不塞进 spec 主体**（守 spec 的 Plan/契约层定位，spec §15 引用本文件）。
-> **骨架来源**：GPT frozen-direction 评审 §3 Checklist A-N（基于 v0.2.6）+ v0.2.7 升级项（P0-1 API digest 主路径、P0-3 失败不覆盖、P1-4 §8.1 marker→exitCode→file 表、P1-5 Canonical Path、N=10）+ v0.2.8 anthropic 消歧（§7.3 null 下沉、§5.4 matchesTarget 基准、§5.8 specVersion 不匹配）。
+> **骨架来源**：GPT frozen-direction 评审 §3 Checklist A-N（基于 v0.2.6）+ v0.2.7 升级项（P0-1 API digest 主路径、P0-3 失败不覆盖、P1-4 §8.1 marker→exitCode→file 表、P1-5 Canonical Path、N=10）+ v0.2.8 anthropic 消歧（§7.3 null 下沉、§5.4 matchesTarget 基准、§5.8 specVersion 不匹配）+ v0.2.9 anthropic 冻结评审（P0-1 REPAIR target、P0-2 verified channel、P1-1 prerelease-vs-REPAIR、P1-2 N=10 计数、P1-3 ALL_REMOTE_FAIL 聚合）。
 > **用法**：Pester 或自写 harness 实现断言。约定 `<cli>` ∈ {claude, codex, opencode}；state 根目录 `D:/AI/Workspace/automatic/CLI-autoupdate/state/`；promotion 入口 `D:/AI/Programs/CLI/<cli>/<cli>.exe`。路径示例用正斜杠（spec §4 Canonical Path 已认可，agent 调 `-File` 用正斜杠）。
 > **每条四栏**：条款（spec 节号 + MUST/SHOULD）｜ 可观测证据（json 字段 / stdout 标记 / 文件副作用，锚 §8.1 对照表）｜ 测试用例（输入状态 → 预期标记+exitCode+文件副作用）｜ 判断（设计理由，把推理落盘防上下文压缩丢失）。
 > **状态标记**：`[ ]` 待实现断言；`[x]` 已有 fixture/已验证；`⚠` 依赖实现期实测（对齐 §14"已知风险声明"）。
@@ -13,10 +13,10 @@
 
 | 条款 | 证据 | 测试用例 | 判断 |
 |---|---|---|---|
-| 脚本清单齐全：`cli-common-v0.2.8.ps1`/`archive-state.ps1`/`sync-v0.2.8.ps1`/`probe-local-*.ps1`/`probe-remote-*.ps1`/`upgrade-*.ps1`/`verify-*.ps1`（§7） | 文件存在性（fd/`Test-Path`） | 列工作区根，断言 7 类文件存在 | GPT A 升级到 v0.2.8 文件名；version 字段一致性是回归基线 |
-| 脚本版本钉死：共享库与 sync 文件名含 `-v0.2.8`；per-cli 脚本首行 `$ScriptVersion='0.2.8'` + `# SPEC: v0.2.8`（§7.4） | 文件名 + 首行 grep | `rg "^# SPEC: v0\.2\.8"` 各脚本 | 防实现期版本漂移；specVersion 是跨版本追溯锚 |
-| 所有 state JSON 顶层 `specVersion:"0.2.8"` + `name`（§5） | JSON 字段 | 遍历 state/*.json 断言两字段 | 跨版本 schema 标识 |
-| **旧 specVersion 处理（🟡 v0.2.8，回填 anthropic——修正原 A 节"触发 fail-closed"脑补）**：state 文件 specVersion≠当前 → 视为陈旧，MUST NOT 作本轮决策依据消费（probe 类本轮覆盖；verified.json 不作晋升凭证——runId 新鲜度天然拦 + specVersion 第二道保险）；**非 fatal、非 PARSE_ERROR**，本轮覆盖写回当前 specVersion 即迁移（§5.8） | 旧 specVersion 文件不被消费 + 本轮覆盖回写 | 预置 `"specVersion":"0.2.7"` 的 verified.json，本轮跑 sync，断言：①不以其为晋升凭证（runId 不匹配天然拦）②本轮 verify 产出新 `"specVersion":"0.2.8"` 覆盖 | **原 checklist A 节断言"旧 specVersion 触发 fail-closed"系脑补**——spec §5/§5.8 无此硬约束；v0.2.8 §5.8 已回填真实契约：specVersion 漂移是版本演进正常现象，文件完整可解析仅"内容不再可信"，非 schema 损坏。fail-closed 仅针对字段缺失/类型错（§5.8 RUNTIME_ERROR_FATAL schema） |
+| 脚本清单齐全：`cli-common-v0.2.9.ps1`/`archive-state.ps1`/`sync-v0.2.9.ps1`/`probe-local-*.ps1`/`probe-remote-*.ps1`/`upgrade-*.ps1`/`verify-*.ps1`（§7） | 文件存在性（fd/`Test-Path`） | 列工作区根，断言 7 类文件存在 | GPT A 升级到 v0.2.9 文件名；version 字段一致性是回归基线 |
+| 脚本版本钉死：共享库与 sync 文件名含 `-v0.2.9`；per-cli 脚本首行 `$ScriptVersion='0.2.9'` + `# SPEC: v0.2.9`（§7.4） | 文件名 + 首行 grep | `rg "^# SPEC: v0\.2\.9"` 各脚本 | 防实现期版本漂移；specVersion 是跨版本追溯锚 |
+| 所有 state JSON 顶层 `specVersion:"0.2.9"` + `name`（§5） | JSON 字段 | 遍历 state/*.json 断言两字段 | 跨版本 schema 标识 |
+| **旧 specVersion 处理（🟡 v0.2.8，回填 anthropic——修正原 A 节"触发 fail-closed"脑补）**：state 文件 specVersion≠当前 → 视为陈旧，MUST NOT 作本轮决策依据消费（probe 类本轮覆盖；verified.json 不作晋升凭证——runId 新鲜度天然拦 + specVersion 第二道保险）；**非 fatal、非 PARSE_ERROR**，本轮覆盖写回当前 specVersion 即迁移（§5.8） | 旧 specVersion 文件不被消费 + 本轮覆盖回写 | 预置 `"specVersion":"0.2.8"` 的 verified.json，本轮跑 sync，断言：①不以其为晋升凭证（runId 不匹配天然拦）②本轮 verify 产出新 `"specVersion":"0.2.9"` 覆盖 | **原 checklist A 节断言"旧 specVersion 触发 fail-closed"系脑补**——spec §5/§5.8 无此硬约束；v0.2.8 §5.8 已回填真实契约：specVersion 漂移是版本演进正常现象，文件完整可解析仅"内容不再可信"，非 schema 损坏。fail-closed 仅针对字段缺失/类型错（§5.8 RUNTIME_ERROR_FATAL schema） |
 
 ---
 
@@ -119,6 +119,7 @@
 | 条款 | 证据 | 测试用例 | 判断 |
 |---|---|---|---|
 | 三 CLI 全 remote fail → probe-remote 末 `ALL_REMOTE_FAIL|`，整轮跳 upgrade/verify 直进 sync（§8） | 标记 + 状态机路径 | mock 三 CLI 全败 | 网断不升级但 sync 全 skip + RUN_STATUS success（如实汇报） |
+| **聚合口径（🟢 v0.2.9 P1-3）**：RATE_LIMITED 与 REMOTE_FAIL 均计入"remote fail"——三 CLI 中混合 RATE_LIMITED+REMOTE_FAIL 也触发 ALL_REMOTE_FAIL | 标记 | mock 一 CLI RATE_LIMITED + 两 CLI REMOTE_FAIL | 防 implementer 误以为只算 REMOTE_FAIL；§8 表行已声明 |
 
 ---
 
@@ -142,7 +143,7 @@
 | 2 | 版本不可解析（**local.version 与 remote.latest 均非 null**，Compare-SemVer incomparable；null 不计此条，见 I0 null 下沉） | `VERSION_FORMAT_ERROR|<cli> <raw>` | 0 | 不写，跳 verify | 格式坏（非空字符串如 `0.1.2.3`）；null 下沉至 4/5 |
 | 3 | target prerelease | `TARGET_PRERELEASE|<cli> <v>` | 0 | 不写，跳 verify | stable-only 拒绝 |
 | 4 | healthy=false 且 probe-error | `PROBE_ERROR|<cli> <reason>` | 0 | 不写，跳 verify | 不重装（probe 偶发超时） |
-| 5 | healthy=false 且 broken | `REPAIR|<cli> <reason>` | 11 | 写 upgrade.json，进 verify | 强制重装 |
+| 5 | healthy=false 且 broken | `REPAIR|<cli> <reason>` | 11 | 写 upgrade.json（target=remote.latest，fromVersion 可能 null），进 verify | 强制重装到 remote.latest（🔴 v0.2.9 P0-1） |
 | 6 | local<remote 且 stable | `ACTIONABLE|<cli> <from>-><to>` | 11 | 写 upgrade.json，进 verify | 主升级路径 |
 | 7 | local==remote 且有本轮新鲜凭证 | `UPTODATE_SKIP|<cli> <v>` | 0 | 不写，跳 verify | 真幂等 |
 | 8 | local==remote 但凭证缺失/verified.version≠local | `UPTODATE_REFRESH|<cli> <v>` | 0 | 不写 upgrade.json，仍跑 verify | F1 seed 兜底；刷新凭证 |
@@ -189,12 +190,13 @@
 | **P0-3 verify 失败不写新鲜 runId verified.json**（§5.4/§8.1） | 旧 verified.json runId 未变 | verify 失败后断言旧 verified.json 不被覆盖 | **核心**：防 sync 误判新鲜度用失败轮凭证覆盖旧有效凭证 |
 | `<cli>-verified.json`：runId MUST 本轮 uuid + version/exePath/bytes/healthy/matchesTarget（§5.4） | JSON 字段 | 成功 case | 晋升三重约束数据源 |
 | opencode sha256 必填；mise SHOULD（§5.4） | sha256 字段 | 两通道 case | 证据链对齐 §5.5 |
+| **verified.json 含 channel 字段（🔴 v0.2.9 P0-2）**：`channel` 必填（mise/github-binary），sync 据此判 sha256 MUST/SHOULD，无需跨文件读 local/remote.json（§5.4/§5.9） | verified.json.channel 字段存在 | 跑 verify 两通道，断言 channel 字段非空且匹配 | **原 §5.9 表 verified channel 必填但 §5.4 示例无 channel**——schema/示例矛盾。v0.2.9 补示例 `"channel":"mise"`，verified 自带通道，Pester 断言自包含 |
 | **matchesTarget 基准（🟡 v0.2.8，回填 anthropic）**：`matchesTarget` 比较基准按 upgrade 决策分支取定（§5.4）——ACTIONABLE/REPAIR 对比 `upgrade.json.target`；UPTODATE_REFRESH（无 upgrade.json）对比 `local.version`（==`remote.latest`，UPTODATE 前提） | matchesTarget 值 + 对比基准来源 | ①ACTIONABLE case：实测 version==upgrade.json.target→true；②UPTODATE_REFRESH case：无 upgrade.json，实测 version==local.version→true；③version≠target→false 触发 VERIFY_FAIL | **原 §5.4 只给字段值 true 未定义"match 的是谁"**——anthropic 指出契约缺口。v0.2.8 补：升级分支对比 upgrade.json.target，刷新轮对比 local.version；matchesTarget==false 一律 VERIFY_FAIL（version-mismatch）不晋升，统一拦在晋升闸外 |
 | `RUNTIME_ERROR|<cli>` 不覆盖旧 verified.json（§8.1） | 旧文件未变 | 触发异常 | 失败不污染 |
 
 ---
 
-## K. sync-v0.2.8.ps1（晋升闸 + 证据链 + 异常隔离）
+## K. sync-v0.2.9.ps1（晋升闸 + 证据链 + 异常隔离 + npm fallback 计数）
 
 ### K1 三重约束（晋升闸）
 
@@ -236,6 +238,16 @@
 |---|---|---|---|
 | sync 末步 `RUN_STATUS|success|<summary>`；fatal `RUN_STATUS|failed|<cause>`（§8） | 标记 + exitCode 0/2 | 成功/fatal case | 终态 |
 | `sync.json.summary` 为 agent 汇报数字唯一来源（§5.5/§9） | summary 与 entries 计数一致 | 跑后断言 | agent 不数 entries |
+
+### K6 opencode npm fallback 计数（🟡 v0.2.9 P1-2）
+
+| 条款 | 证据 | 测试用例 | 判断 |
+|---|---|---|---|
+| `state/opencode-npm-fallback.json` schema：consecutiveSyncSuccess(int)/lastUpdatedAt(ISO)/uninstalled(bool) + specVersion/name（§5.9/§10.5） | JSON 字段 | 跑 sync 后断言文件存在且字段齐 | 原仅定 N=10 阈值无计数机制，名实不符；v0.2.9 补方案(a)轻量计数文件 |
+| 成功计数：opencode 本轮 sync 成功（SYNC_COPY 或 already-current）→ +1 | consecutiveSyncSuccess 递增 | 连续跑 3 轮 opencode 成功，断言计数=3 | "成功"含幂等 skip（already-current 仍算稳定） |
+| 失败归零：opencode sync 失败（copy 失败/复核不过/目标锁定/SYNC_SKIP 非 already-current/未跑 sync 如 ALL_REMOTE_FAIL）→ =0 | 计数归零 | 计数到 5 后造一次 opencode copy 失败，断言归 0 | 任一失败破坏"连续"语义 |
+| 达 10 卸载：consecutiveSyncSuccess≥10 且 uninstalled==false → 执行 npm uninstall -g opencode，置 uninstalled=true | uninstalled=true + npm 全局无 opencode | 连续 10 轮成功后断言卸载执行 | 幂等：uninstalled=true 后不再重复卸载 |
+| sync 末步更新本文件（RUN_STATUS success 覆盖；fatal 前已处理则更新否则不动）（§8.1） | 文件 mtime 更新 | 跑 sync 断言文件被覆盖 | §8.1 表 sync 行副作用已含 |
 
 ---
 
@@ -309,6 +321,20 @@
 
 ---
 
+## O3. v0.2.9 anthropic 冻结评审专项验收（闭合"语义未闭合"）
+
+> 本节专验 v0.2.9 相对 v0.2.8 的闭合点（anthropic 冻结评审 P0/P1），确保契约缺口真闭合。
+
+| 条款 | 证据 | 测试用例 | 判断 |
+|---|---|---|---|
+| **🔴 P0-1 REPAIR target 已定义**：§7.3 条件5 动作 `mise install <tool>@<remote.latest>` + 顺序说明 REPAIR target 段（覆盖 broken+staging-空/broken+local-ahead 边界）+ §5.3 target 来源 + §8.1 表 REPAIR 行（§7.3/§5.3/§8.1） | spec 文本 + I1 第5行 | I1 第5行 fixture：broken opencode staging 空 → REPAIR，断言 upgrade.json.target==remote.latest | **anthropic P0-1**：原 `<ver>` 未定义，opencode 无本地版本可修回；v0.2.9 统一 remote.latest，matchesTarget 基准闭环 |
+| **🔴 P0-2 verified channel schema 一致**：§5.4 示例含 `"channel":"mise"` + §5.9 表 channel 必填（§5.4/§5.9） | spec 文本 + J 节 verified channel 验收 | 见 J 节 verified channel case | **anthropic P0-2**：原示例/表矛盾，Pester 无法机械化；v0.2.9 补示例，自包含 |
+| **🟡 P1-1 prerelease-vs-REPAIR 列§14-11**：§14-11 风险声明（不重排，stable-only 后果）（§14-11） | §14-11 文本存在 | 审查 §14 含第 11 项 | **anthropic P1-1**：null 下沉的同构问题；重排冲突 stable-only，列风险正确 |
+| **🟡 P1-2 N=10 计数机制落地**：§10.5 计数文件算法 + §5.9 schema + §4 目录 + §8.1 sync 副作用（§10.5/§5.9/§4/§8.1） | spec 文本 + K6 节 | 见 K6 节计数/归零/卸载 case | **anthropic P1-2**：原"已闭合"名实不符；v0.2.9 补方案(a)计数文件 |
+| **🟢 P1-3 ALL_REMOTE_FAIL 聚合已声明**：§8 表 ALL_REMOTE_FAIL 行"RATE_LIMITED 与 REMOTE_FAIL 均计入"（§8） | spec 文本 | 审查 §8 行 | 一句话澄清，防实现期分歧 |
+
+---
+
 ## P. 待实测项（⚠ 依赖实现期，对齐 §14 知名风险声明）
 
 | 条款 | 证据 | 测试用例 | 判断 |
@@ -317,12 +343,13 @@
 | ⚠ PID 沙箱陈锁判定（§14-3）：不确定→保守 `LOCKED|` 不抢锁 | 标记 | 实现期模拟 | Cherry 沙箱 PID 可靠性待实测 |
 | ⚠ 极端时钟回拨（§14-8）：runId 匹配优先，runId 缺失 runAt 兜底 | 凭证新鲜度 | 实现期模拟时钟回拨 | 已知边界，待测试覆盖 |
 | ⚠ digest 对未来 release 覆盖：当前 v1.18.31 全覆盖，未来 release 若 digest=null 走 fallback | fallback 触发 | 实现期 mock digest=null | [cite:472d3952-2] 旧 asset digest 可能为 null |
+| ⚠ prerelease-vs-REPAIR（§14-11）：broken+remote 为 prerelease → TARGET_PRERELEASE 先命中，REPAIR 排不上 | 标记路径 | 实现期 mock remote.latest=prerelease+broken local | stable-only 后果；三 CLI 持续有 stable，概率极低；触发需人工 pin |
 
 ---
 
 ## 收尾
 
-- 本 checklist 是 **candidate**（候选），与 SPEC-v0.2.8 冻结候选同阶段，随评审迭代。
+- 本 checklist 是 **candidate**（候选），与 SPEC-v0.2.9 冻结候选同阶段，随评审迭代。
 - 实现期产出 Pester 骨架时，每条转 `Describe/It` + fixture 生成器 + stdout 捕获 + JSON schema 断言。
 - §14 知名风险项（§P）在实现期实测后，若口径变化须回流 spec（架构层）+ 本 checklist（验收层）双更新。
-- 版本号：本 checklist 对齐 `SPEC-v0.2.8`；spec 升版时本文件同步升版。
+- 版本号：本 checklist 对齐 `SPEC-v0.2.9`；spec 升版时本文件同步升版。
