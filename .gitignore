@@ -10,3 +10,4 @@ TEMP/
 .workerbuddy/
 .vscode/
 .claude/
+.supervisor/
