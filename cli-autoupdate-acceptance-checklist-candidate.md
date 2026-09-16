@@ -1,8 +1,8 @@
 # CLI 自动升级 验收 checklist（候选）
 
-> **版本**：acceptance-checklist-candidate（对齐 `SPEC-v0.2.10.md`，2026-09-16）。
+> **版本**：acceptance-checklist-candidate（对齐 `SPEC-v0.2.12.md`，2026-09-16）。
 > **定位**：Executor/测试层产物。SPEC 是 Plan/契约（定义"该做什么"），本 checklist 是验收契约（定义"怎么证明做到了"），**不塞进 spec 主体**（守 spec 的 Plan/契约层定位，spec §15 引用本文件）。
-> **骨架来源**：GPT frozen-direction 评审 §3 Checklist A-N（基于 v0.2.6）+ v0.2.7 升级项（P0-1 API digest 主路径、P0-3 失败不覆盖、P1-4 §8.1 marker→exitCode→file 表、P1-5 Canonical Path、N=10）+ v0.2.8 anthropic 消歧（§7.3 null 下沉、§5.4 matchesTarget 基准、§5.8 specVersion 不匹配）+ v0.2.9 anthropic 冻结评审（P0-1 REPAIR target、P0-2 verified channel、P1-1 prerelease-vs-REPAIR、P1-2 N=10 计数、P1-3 ALL_REMOTE_FAIL 聚合）+ v0.2.10 CodeBuddy 审计复核（D1 schema/示例一致性、D2 fromVersion null 类型、D3 §7.3 条件7/8 互补+else 兜底、D4 §7.2 REPAIR `<ver>`、D5 计数唯一规则、D6 三重约束②可机械化、D7 npm-fallback 时间字段例外、D8 FATAL 产出者、D9 ALL_REMOTE_FAIL 产出者、D10 REMOTE_FAIL 落盘字段、D11 sha256 跨脚本拆分、D12 §5.8 示例跨版本）。
+> **骨架来源**：GPT frozen-direction 评审 §3 Checklist A-N（基于 v0.2.6）+ v0.2.7 升级项（P0-1 API digest 主路径、P0-3 失败不覆盖、P1-4 §8.1 marker→exitCode→file 表、P1-5 Canonical Path、N=10）+ v0.2.8 anthropic 消歧（§7.3 null 下沉、§5.4 matchesTarget 基准、§5.8 specVersion 不匹配）+ v0.2.9 anthropic 冻结评审（P0-1 REPAIR target、P0-2 verified channel、P1-1 prerelease-vs-REPAIR、P1-2 N=10 计数、P1-3 ALL_REMOTE_FAIL 聚合）+ v0.2.10 CodeBuddy 审计复核（D1 schema/示例一致性、D2 fromVersion null 类型、D3 §7.3 条件7/8 互补+else 兜底、D4 §7.2 REPAIR `<ver>`、D5 计数唯一规则、D6 三重约束②可机械化、D7 npm-fallback 时间字段例外、D8 FATAL 产出者、D9 ALL_REMOTE_FAIL 产出者、D10 REMOTE_FAIL 落盘字段、D11 sha256 跨脚本拆分、D12 §5.8 示例跨版本）+ v0.2.11 GPT 审计复核（P0-1 exitCode 非权威 MUST、P0-2 run.lock processStartTimeUtc 双校验、P0-3 Compare-SemVer 正规化+测试表、P1-1 删 cite 占位符、P2 路径硬编码理由）+ v0.2.12 anthropic 审计复核（P0-1 锁接管逻辑修正伪代码、P0-2 processStartTimeUtc 升 MUST+fallback、P1-3 §8.1 ALL_REMOTE_FAIL 产出者对齐、P1-4 SemVer §11 precedence、P1-5 计数封顶、P2-1 sync.json runStatus、P2-2 pin mismatch 提醒、P2-3 DISK_FULL/EXE_LOCKED 阈值、P2-4 checksum 同名冲突 fail-closed、P2-5 版本历史日期说明、P2-6 伪代码落 spec）。
 > **用法**：Pester 或自写 harness 实现断言。约定 `<cli>` ∈ {claude, codex, opencode}；state 根目录 `D:/AI/Workspace/automatic/CLI-autoupdate/state/`；promotion 入口 `D:/AI/Programs/CLI/<cli>/<cli>.exe`。路径示例用正斜杠（spec §4 Canonical Path 已认可，agent 调 `-File` 用正斜杠）。
 > **每条四栏**：条款（spec 节号 + MUST/SHOULD）｜ 可观测证据（json 字段 / stdout 标记 / 文件副作用，锚 §8.1 对照表）｜ 测试用例（输入状态 → 预期标记+exitCode+文件副作用）｜ 判断（设计理由，把推理落盘防上下文压缩丢失）。
 > **状态标记**：`[ ]` 待实现断言；`[x]` 已有 fixture/已验证；`⚠` 依赖实现期实测（对齐 §14"已知风险声明"）。
@@ -13,10 +13,10 @@
 
 | 条款 | 证据 | 测试用例 | 判断 |
 |---|---|---|---|
-| 脚本清单齐全：`cli-common-v0.2.10.ps1`/`archive-state.ps1`/`sync-v0.2.10.ps1`/`probe-local-*.ps1`/`probe-remote-*.ps1`/`upgrade-*.ps1`/`verify-*.ps1`（§7） | 文件存在性（fd/`Test-Path`） | 列工作区根，断言 7 类文件存在 | GPT A 升级到 v0.2.10 文件名；version 字段一致性是回归基线 |
-| 脚本版本钉死：共享库与 sync 文件名含 `-v0.2.10`；per-cli 脚本首行 `$ScriptVersion='0.2.10'` + `# SPEC: v0.2.10`（§7.4） | 文件名 + 首行 grep | `rg "^# SPEC: v0\.2\.10"` 各脚本 | 防实现期版本漂移；specVersion 是跨版本追溯锚 |
-| 所有 state JSON 顶层 `specVersion:"0.2.10"` + `name`（§5）——🔴 v0.2.10 D1：`name` 例外——sync.json 顶层用 `name:"sync"`；`error` 仅 local/remote/upgrade 必带，verified/sync/current-run/pin/npm-fallback 不带 error | JSON 字段 | 遍历 state/*.json 断言两字段（按文件判 name/error 适用性） | 跨版本 schema 标识；D1 闭合 §5.9「全部」行与示例矛盾（P0-2 同族） |
-| **旧 specVersion 处理（🟡 v0.2.8，回填 anthropic——修正原 A 节"触发 fail-closed"脑补）**：state 文件 specVersion≠当前 → 视为陈旧，MUST NOT 作本轮决策依据消费（probe 类本轮覆盖；verified.json 不作晋升凭证——runId 新鲜度天然拦 + specVersion 第二道保险）；**非 fatal、非 PARSE_ERROR**，本轮覆盖写回当前 specVersion 即迁移（§5.8） | 旧 specVersion 文件不被消费 + 本轮覆盖回写 | 预置 `"specVersion":"0.2.9"` 的 verified.json，本轮跑 sync，断言：①不以其为晋升凭证（runId 不匹配天然拦）②本轮 verify 产出新 `"specVersion":"0.2.10"` 覆盖 | **原 checklist A 节断言"旧 specVersion 触发 fail-closed"系脑补**——spec §5/§5.8 无此硬约束；v0.2.8 §5.8 已回填真实契约：specVersion 漂移是版本演进正常现象，文件完整可解析仅"内容不再可信"，非 schema 损坏。fail-closed 仅针对字段缺失/类型错（§5.8 RUNTIME_ERROR_FATAL schema）。v0.2.10 D12 修正示例为跨版本值（`"0.2.9"` vs `"0.2.10"`） |
+| 脚本清单齐全：`cli-common-v0.2.12.ps1`/`archive-state.ps1`/`sync-v0.2.12.ps1`/`probe-local-*.ps1`/`probe-remote-*.ps1`/`upgrade-*.ps1`/`verify-*.ps1`（§7） | 文件存在性（fd/`Test-Path`） | 列工作区根，断言 7 类文件存在 | GPT A 升级到 v0.2.12 文件名；version 字段一致性是回归基线 |
+| 脚本版本钉死：共享库与 sync 文件名含 `-v0.2.12`；per-cli 脚本首行 `$ScriptVersion='0.2.12'` + `# SPEC: v0.2.12`（§7.4） | 文件名 + 首行 grep | `rg "^# SPEC: v0\.2\.12"` 各脚本 | 防实现期版本漂移；specVersion 是跨版本追溯锚 |
+| 所有 state JSON 顶层 `specVersion:"0.2.12"` + `name`（§5）——🔴 v0.2.10 D1：`name` 例外——sync.json 顶层用 `name:"sync"`；`error` 仅 local/remote/upgrade 必带，verified/sync/current-run/pin/npm-fallback 不带 error | JSON 字段 | 遍历 state/*.json 断言两字段（按文件判 name/error 适用性） | 跨版本 schema 标识；D1 闭合 §5.9「全部」行与示例矛盾（P0-2 同族） |
+| **旧 specVersion 处理（🟡 v0.2.8，回填 anthropic——修正原 A 节"触发 fail-closed"脑补）**：state 文件 specVersion≠当前 → 视为陈旧，MUST NOT 作本轮决策依据消费（probe 类本轮覆盖；verified.json 不作晋升凭证——runId 新鲜度天然拦 + specVersion 第二道保险）；**非 fatal、非 PARSE_ERROR**，本轮覆盖写回当前 specVersion 即迁移（§5.8） | 旧 specVersion 文件不被消费 + 本轮覆盖回写 | 预置 `"specVersion":"0.2.11"` 的 verified.json，本轮跑 sync，断言：①不以其为晋升凭证（runId 不匹配天然拦）②本轮 verify 产出新 `"specVersion":"0.2.12"` 覆盖 | **原 checklist A 节断言"旧 specVersion 触发 fail-closed"系脑补**——spec §5/§5.8 无此硬约束；v0.2.8 §5.8 已回填真实契约：specVersion 漂移是版本演进正常现象，文件完整可解析仅"内容不再可信"，非 schema 损坏。fail-closed 仅针对字段缺失/类型错（§5.8 RUNTIME_ERROR_FATAL schema）。v0.2.12 §5.8 示例为跨版本值（`"0.2.11"` vs `"0.2.12"`） |
 
 ---
 
@@ -197,7 +197,7 @@
 
 ---
 
-## K. sync-v0.2.10.ps1（晋升闸 + 证据链 + 异常隔离 + npm fallback 计数）
+## K. sync-v0.2.12.ps1（晋升闸 + 证据链 + 异常隔离 + npm fallback 计数）
 
 ### K1 三重约束（晋升闸）
 
@@ -354,8 +354,44 @@
 | **🟢 D9 ALL_REMOTE_FAIL 产出者钉死**：由 agent/SOP 聚合判定（非单 CLI 脚本）（§8） | spec 文本 + H3 | H3 case：三 CLI 全败，断言 ALL_REMOTE_FAIL 由 SOP 聚合产出 | probe-remote 每 CLI 独立，单脚本无法知"三全败" |
 | **🟢 D10 REMOTE_FAIL 落盘字段全**：assetName/checksumAssetUrl=null, fallbackUsed=false 等必填字段占位（§5.2/§8.1） | spec 文本 + H2 | H2 REMOTE_FAIL case 断言 §5.9 必填字段全在 | 原 §5.9 列必填但落盘语义未声明取值 |
 | **🟢 D11 sha256 跨脚本拆分**：upgrade 写 upgrade.json.sha256，verify 复算写 verified.json.sha256（§5.2） | spec 文本 + I2 | I2 case 断言两文件各写各 sha256 且一致 | 原"解压后写 verified.json.sha256"可误读 upgrade 越界 |
-| **🟢 D12 §5.8 示例跨版本**：`"0.2.9" vs "0.2.10"`（§5.8） | spec 文本 | 审查 §5.8 示例两侧不同值 | 原同值示例失意义（机械替换所致） |
+| **🟢 D12 §5.8 示例跨版本**：`"0.2.11" vs "0.2.12"`（§5.8） | spec 文本 | 审查 §5.8 示例两侧不同值 | 原同值示例失意义（机械替换所致） |
 | **驳回 D13**：观察项——gh/mise 不在审计 shell PATH 属审计局限；"gh 定位方式"属 SOP/实现期，§5 已允许 env 注入，不入 spec 主体 | — | — | 非文档缺陷；实现期 SOP 处理 gh 绝对路径/env 注入 |
+
+---
+
+## O5. v0.2.11 GPT 审计专项验收（exitCode 非权威 + 锁双校验 + Compare-SemVer 测试化）
+
+> 本节专验 v0.2.11 相对 v0.2.10 的闭合点（GPT 独立审计 P0-1/P0-2/P0-3/P1-1/P2），全契约级补充。P1-2（cause 全枚举）驳回不入 spec。历史归属：自 v0.2.12 起 §6 锁接管伪代码已重写修正 v0.2.11 引入的回归（见 §O6 P0-1），本节 P0-2 行保留 v0.2.11 历史判定口径作为演进轨迹。
+
+| 条款 | 证据 | 测试用例 | 判断 |
+|---|---|---|---|
+| **🟡 P0-1 exitCode 非权威 MUST**：整轮成功/失败判定各层以 `RUN_STATUS|...` 标记为准，exitCode MUST NOT 参与成功判定；SOP/定时任务层明确"只解析 RUN_STATUS"（§8） | spec §8 MUST 断言 + SOP 文本 | 构造 exitCode=11 但无 RUN_STATUS 的异常 case → 按保守 fatal 处理（非判成功）；构造 `RUN_STATUS|success|` exitCode=2 case → 判成功 | 外部调度器默认 exitCode!=0 标红会误告警/误重跑；option B（改 exitCode 表）驳回＝破坏 §8.1 对照表 |
+| **🟡 P0-2 run.lock processStartTimeUtc 双校验**：run.lock 含 `processStartTimeUtc`（SHOULD）；陈锁接管 PID 死亡判定加 startTime 匹配——`Get-Process -Id` 命中后比对 `Process.StartTime` 与锁内值，不匹配→保守 `LOCKED|`（§6） | run.lock 字段 + 接管行为 | 构造陈锁（beat 超 30min）+ 启动无关进程占同 PID（startTime 不匹配）→ 断言拒接管 `LOCKED|`、不删活锁；同 PID 同 startTime 进程已死 → 接管 | PID 重用误接管风险压极低；spec 本已 fail-closed（误接管→拒→LOCKED＝假阴性方向），故降 P0→P1 |
+| **🟡 P0-3 Compare-SemVer 正规化 + 测试表**：§7.1 12 条"输入→期望输出"表照表打（§7.1） | spec §7.1 测试表 | 用 §7.1 表 12 条 case 跑 `Compare-SemVer`，断言返回值全匹配（含 v 前缀/prerelease/build 忽略/缺 patch incomparable/4+段 incomparable） | 消除"同输入不同实现→不同分支"验收争议；build 元数据＝忽略非 incomparable（与 SemVer 规范一致） |
+| **🟢 P1-1 删 cite 占位符**：§5.2/§17 无 `[cite:...]` 内部占位；"2025-06-03 起"软化为实测措辞（§5.2/§17） | spec 文本 grep | `rg "cite:" SPEC-v0.2.12.md` 断言 0 命中；§5.2/§17 digest 段落措辞改实测依据 | 内部 cite 占位损文档自洽/可审计性 |
+| **🟢 P2 路径硬编码理由**：§0 明示"路径写死是有意选择（减变量、提可验收性）"，非缺陷（§0） | spec §0 文本 | 审查 §0 有理由句 | 防旁观者当缺陷提无意义 issue |
+| **§15 PID 重用/锁误接管模拟用例**：单元测试覆盖陈锁+同 PID 新进程→拒接管（§15） | 测试用例存在 | 实现 §15 测试用例 | GPT 验收建议 3 例中此例新增；时钟回拨（§14-8 已覆盖）、specVersion 漂移（A 节已覆盖） |
+| **驳回 P1-2（cause 全枚举）**：运行时 cause 是开放集合（download/zip-slip/digest-mismatch 等已枚举关键类），全枚举不可行且过度；自由文本仅日志不影响 marker 契约 | — | — | GPT 建议 cause 三层枚举+marker 末尾 detail= 字段＝过度工程；spec marker 的 `<cause>` 已对关键失败类枚举化，自由文本限日志 |
+
+---
+
+## O6. v0.2.12 anthropic 审计专项验收（锁接管伪代码修正 + 升 MUST + SemVer §11 + schema 对齐）
+
+> 本节专验 v0.2.12 相对 v0.2.11 的闭合点（anthropic 独立审计 P0-1/P0-2/P1-3/P1-4/P1-5/P2-1~P2-6），全采纳无驳回。P0-1 系 v0.2.11 引入的回归（锁接管逻辑写反），本轮修正。
+
+| 条款 | 证据 | 测试用例 | 判断 |
+|---|---|---|---|
+| **🔴 P0-1 §6 锁接管伪代码修正（v0.2.11 回归）**：StartTime **匹配**→同一实例仍存活→`LOCKED`（不抢）；**不匹配**→PID 被复用→原进程已死→`TAKEOVER`；Get-Process 未命中→已死→`TAKEOVER`（§6） | spec §6 伪代码 4 分支 | 构造陈锁 beat>30min + 4 场景：①Get-Process 未命中→TAKEOVER ②命中且 startTime 匹配→LOCKED ③命中但不匹配→TAKEOVER ④字段缺失→LOCKED | v0.2.11 原文"匹配→已死"违反 Windows 进程语义（StartTime 匹配＝同实例存活），误抢存活进程锁＝数据损坏级风险；anthropic 正确指出，本轮按正确语义重写 |
+| **🔴 P0-2 §6 processStartTimeUtc 升 MUST + fallback**：争锁写锁 MUST 带 `processStartTimeUtc`；陈锁接管遇字段缺失→保守 `LOCKED`（§6） | run.lock 字段 MUST + fallback 分支 | 预置无 `processStartTimeUtc` 的陈锁→断言 `LOCKED` 不抢 | 原 SHOULD 与"MUST 比对"契约矛盾（被依赖却允许不写）；升 MUST 闭合契约缺口，fallback 保证旧版锁不致逻辑悬空 |
+| **🟡 P1-3 §8.1 ALL_REMOTE_FAIL 产出者对齐**：该行"脚本"列改为 `agent/SOP 聚合`，exitCode 列"不适用（聚合层无单脚本退出码）"（§8.1） | spec §8.1 表行 | 审查 §8.1 ALL_REMOTE_FAIL 行脚本列非 `probe-remote`、exitCode 列非 `2` | §8 正文 D9 已钉死 ALL_REMOTE_FAIL 由聚合层判定，§8.1 表行原标 probe-remote+exitCode=2 自相矛盾，会误导实现者让单脚本输出此标记 |
+| **🟡 P1-4 §7.1 SemVer 2.0.0 §11 precedence**：prerelease 比较采标准规则（数字段按数值、非数字段 ASCII、数字段<非数字段、字段少者<多者），删"不强制唯一性"措辞（§7.1） | spec §7.1 文本 | 用 §7.1 12 条测试表跑 `Compare-SemVer`，断言全匹配（含 `1.2.3-rc.1 vs 1.2.3-rc.2 → -1`） | 原"仅作排序用，不强制唯一性"与同表"MUST 照表打"自洽性破缺；采用 SemVer §11 标准规则使算法精确可验 |
+| **🟡 P1-5 §10.5/§5.9 计数封顶**：`consecutiveSyncSuccess` 在 `uninstalled==true` 后冻结于 10 不再累加（§10.5/§5.9 schema "0-10"） | sync 后 npm-fallback.json 字段值 | 跑 sync 成功至 `uninstalled=true` 后再跑 1 轮成功→断言字段仍=10 不=11 | 原规则"成功 +=1"无封顶，与 schema "0-10" 矛盾；第 11 轮会让验收断言 `∈[0,10]` 报错 |
+| **🟢 P2-1 §5.5/§5.9 sync.json runStatus**：sync.json 顶层加 `runStatus: "success"|"failed"`，与 RUN_STATUS 标记对齐（§5.5/§5.9） | sync.json 顶层字段 | 跑成功轮→断言 `runStatus:"success"`；构造中途 FATAL→断言 `runStatus:"failed"`（若已部分写则保留） | 原仅 entries 数组无顶层状态，审计需跨文件 fetch_run.log 才能判"腰斩与否" |
+| **🟢 P2-2 §9 pin mismatch 提醒**：汇报模板加"pin 存在但连续 N 轮 mismatch→收尾备注显式提醒"（N 不硬编码）（§9） | spec §9 模板文本 | 审查 §9 模板含 pin mismatch 提醒句 | 原无告警机制，pin 拼写错/版本超窗会无限期静默 SKIP |
+| **🟢 P2-3 §8 DISK_FULL/EXE_LOCKED 阈值**：DISK_FULL 默认可用<500MB（SHOULD）；EXE_LOCKED 检测方式试独占打开/Get-Process（§8） | spec §8 文本 | 审查 §8 含阈值建议与检测方式 | 原完全交 Executor 自治，跨实现触发时机不一致影响跨轮对比 |
+| **🟢 P2-4 §5.2 checksum 同名冲突 fail-closed**：同名 asset 多条——哈希相同取首条+warning；哈希不同→`DOWNLOAD_FAIL|<cli> checksum-mismatch` fail-closed（§5.2） | spec §5.2 规则 5 文本 | 构造同名 asset 两条哈希不同→断言 DOWNLOAD_FAIL 不取首条 | 原"多匹配取第一条"对哈希冲突也静默取首，掩盖 checksum 文件异常信号 |
+| **🟢 P2-5 §16 版本历史同日说明**：§16 表注同日多轮迭代，带时分或"同日第 N 轮"标注（§16） | spec §16 文本 | 审查 §16 表含同日说明 | 原全标同一天，时间列失追溯意义 |
+| **🟢 P2-6 §6 锁接管伪代码落 spec**：§6 已以 PowerShell 伪代码形式写入 spec 主体（非仅自然语言），§15 单测补三方向覆盖（§6/§15） | spec §6 伪代码 + §15 用例 | 审查 §6 含 4 分支伪代码；§15 含 TAKEOVER/LOCKED/字段缺失三方向断言 | 自然语言可两种相反读法；伪代码消除二义性，单测锁定语义 |
 
 ---
 
@@ -364,16 +400,16 @@
 | 条款 | 证据 | 测试用例 | 判断 |
 |---|---|---|---|
 | ⚠ 反代长期可靠性（§14-2）：反代失效→直连重试一次→仍失败 `DOWNLOAD_FAIL|` | 标记 | 实现期 mock/实测 | 验收口径已定，可靠性待实测 |
-| ⚠ PID 沙箱陈锁判定（§14-3）：不确定→保守 `LOCKED|` 不抢锁 | 标记 | 实现期模拟 | Cherry 沙箱 PID 可靠性待实测 |
+| ⚠ PID 沙箱陈锁判定（§14-3）：不确定→保守 `LOCKED|` 不抢锁；🟡 v0.2.12 P0-2：`processStartTimeUtc` 升 MUST+fallback；陈锁接管三分支伪代码（未命中→TAKEOVER；命中且 startTime 匹配→LOCKED；命中但不匹配→TAKEOVER；字段缺失→LOCKED），PID 重用误接管风险压到极低，沙箱可靠性仍待实测 | 标记 + startTime 双校验 | 实现期模拟陈锁+同 PID 新进程（startTime 不匹配→TAKEOVER）+同 PID 同 startTime（→LOCKED）+字段缺失（→LOCKED）三方向 | Cherry 沙箱 PID 可靠性待实测；v0.2.12 修正 v0.2.11 回归后误判方向恒为安全（存活进程不被误抢） |
 | ⚠ 极端时钟回拨（§14-8）：runId 匹配优先，runId 缺失 runAt 兜底 | 凭证新鲜度 | 实现期模拟时钟回拨 | 已知边界，待测试覆盖 |
-| ⚠ digest 对未来 release 覆盖：当前 v1.18.31 全覆盖，未来 release 若 digest=null 走 fallback | fallback 触发 | 实现期 mock digest=null | [cite:472d3952-2] 旧 asset digest 可能为 null |
+| ⚠ digest 对未来 release 覆盖：当前 v1.18.31 全覆盖，未来 release 若 digest=null 走 fallback | fallback 触发 | 实现期 mock digest=null | 旧 asset digest 可能为 null |
 | ⚠ prerelease-vs-REPAIR（§14-11）：broken+remote 为 prerelease → TARGET_PRERELEASE 先命中，REPAIR 排不上 | 标记路径 | 实现期 mock remote.latest=prerelease+broken local | stable-only 后果；三 CLI 持续有 stable，概率极低；触发需人工 pin |
 
 ---
 
 ## 收尾
 
-- 本 checklist 是 **candidate**（候选），与 SPEC-v0.2.10 同阶段，随评审迭代。
+- 本 checklist 是 **candidate**（候选），与 SPEC-v0.2.12 同阶段，随评审迭代。
 - 实现期产出 Pester 骨架时，每条转 `Describe/It` + fixture 生成器 + stdout 捕获 + JSON schema 断言。
 - §14 知名风险项（§P）在实现期实测后，若口径变化须回流 spec（架构层）+ 本 checklist（验收层）双更新。
-- 版本号：本 checklist 对齐 `SPEC-v0.2.10`；spec 升版时本文件同步升版。
+- 版本号：本 checklist 对齐 `SPEC-v0.2.12`；spec 升版时本文件同步升版。
