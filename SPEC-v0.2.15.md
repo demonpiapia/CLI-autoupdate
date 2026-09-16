@@ -1,13 +1,14 @@
-# CLI 自动升级 —— 项目规格 SPEC v0.2.14
+# CLI 自动升级 —— 项目规格 SPEC v0.2.15
 
-> **版本**：SPEC-v0.2.14（2026-09-16）。
-> **变更摘要（v0.2.13 → v0.2.14）**：架构不动。据 Cherry 独立审计（对 v0.2.13）复核，6 项意见：采纳 3、部分采纳 1、驳回 1（实测证伪）、固化其验证要求 1——全为契约层补全/措辞澄清，**不涉 §6 伪代码判定方向**：
-> - 🔴 **CH-P1-1**（采纳）：run.lock 存储格式声明 + 纳入 §5.9 schema 总表——§5.9 补 run.lock 行（存储格式 = JSON；runId/start/beat/pid/processStartTimeUtc 五字段类型与格式约束），§5 总则与 §6 写侧声明"run.lock 为 JSON 锁文件（不带 specVersion/name，不参与 §11 归档）"，§4 目录树加格式注；使 CB-P1-2 钉死的 `processStartTimeUtc` 格式契约（UTC 'o'、7 位小数）获得 schema 级落点，验收按 §5.9 建断言不再漏 run.lock。
-> - 🔴 **CH-P1-2**（采纳）：archive-state 补成功标记 `ARCHIVE_OK|<runId>`——此前唯 archive-state 成功路径无 `*_OK|` 标记：§8.1"关键标记"列为描述文字、exitCode 又被 §8 P0-1 禁止参与成功判定、沉默成功与进程崩溃不可机械区分，agent 判"archive OK 进 probe"依据悬空。§8 标记表加行（成功类）+ §8.1 成功行改标记 + §9 状态机 OK 边注明判据，三处同步。
-> - 🟢 **CH-P1-3**（驳回，实测证伪；其"实现期实测"要求已执行并固化结论）：`'o'` 写侧与读侧 7 位小数正则**实为自洽**——PS 7.6.4 实测（2026-09-16）：锁值来源 `Process.StartTime` 为 **DateTime** 类型；DateTime 的 `'o'` 格式**恒输出 7 位小数**（整秒对齐输出 `.0000000`，与 Kind 无关：UTC 路径 `...03.0000000Z`、Local 路径 `...03.0000000+08:00`）；读侧 `\.\d{7}Z` 正则匹配通过、Parse(RoundtripKind) 得 Kind=Utc。Cherry 预测的"整秒省略小数段→永不 TAKEOVER"断档在实机行为中不存在（其报告亦自认 PLAUSIBLE 未实测）。§6 固化实测结论 + 补防御禁令：**MUST NOT 以 DateTimeOffset 序列化锁时间**（其 `'o'` 输出 offset 后缀 `+00:00` 非 `Z`，恒不匹配读侧正则→保守 LOCKED，fail-safe 但使陈锁接管失效）。
-> - 🟢 **CH-P2-1**（采纳）：§9 状态机注明 re-probe 可达性——`UPTODATE_SKIP`（§7.3 条件7）仅同轮穿插 re-probe 可达，标准单轮状态机（upgrade 每轮每 CLI 恰一次）不可达，跨轮稳态走 `UPTODATE_REFRESH`；穿插 re-probe 属 SOP 可选步骤非状态机标准节点。闭合 §7.3 可达范围声明与 §9 覆盖缺口。
-> - 🟢 **CH-P2-2**（采纳）：§8.1 `RUN_STATUS|failed` 行计数措辞澄清——冻结态（`uninstalled==true`）下"更新"=no-op、保持定格 10，非归零；消除与 §10.5"完全冻结"的字面冲突。
-> - 🟢 **CH-P2-3**（部分采纳，轻量选项）：§14 两组序号注明"历史连续编号、跨组不连续"；**驳回重编号方案**——§14-N 编号是历轮审计与正文（§5.2/§6/§7.3 等）交叉引用锚点，重编号需同步改多处引用，收益低于回归风险。
+> **版本**：SPEC-v0.2.15（2026-09-17）。
+> **变更摘要（v0.2.14 → v0.2.15）**：架构不动。据 GPT 独立审计（对 v0.2.14，`.supervisor/spec-v0.2.14-GPT-review.md`）复核，7 项意见：采纳 5、部分采纳 1、驳回 1——全为契约层补全/消歧，**不改任何判定语义、不涉 §6 锁逻辑**：
+> - 🔴 **GPT-P0-1**（采纳）：mise staging 路径"省略号"消歧义——§2 的 `E:\...\CherryStudio\Toolchain\mise\installs\<tool>\<ver>\` 精确化为 `E:\Users\WIN_11\AppData\Roaming\CherryStudio\Toolchain\mise\installs\`（本轮实测复核 2026-09-17 + legacy 实测 2026-09-16）；§4 Canonical Path 补该行；§7.1 新增"Cherry mise 环境契约"（`Get-MiseInstallsDir`/`Get-MiseExePath`/`Get-NpmPrefix` 精确常量 + `Get-CherryMiseEnv` 七键 + "mise 子进程 MUST 带 MISE_* env / 文件扫描不依赖 env" + ExeRelPath 实测结构 + 失败沿既有标记不新增）；§5.1 补 mise 通道目录缺失/空语义（同 opencode staging 空 → broken → REPAIR 通道）。
+> - 🔴 **GPT-P0-2**（采纳）：§8 补"标记行语法"MUST 六条——独占一行/行首即标记名（禁前导时间戳、日志级别）/首个 `|` 切分且标记名 ∈ §8 表枚举/除 `RUN_STATUS` 外 payload MUST NOT 含 `|`/非标记日志行 MUST NOT 以"已知标记名 + `|`"开头/agent 解析规则。消除 Write-Host/日志框架差异导致的误解析。
+> - 🟡 **GPT-P0-3**（部分采纳）：current-run.json `name`=任务名语义注记强化——§5.9 补 current-run.name 独立 schema 行（固定 `<cli-autoupdate>`；"与其他文件的 CLI 名语义不同，验收断言 MUST 分开编写"）+ §5.6 注同步；**驳回字段改名 `taskName`**——`name` 在本项目统一表达"文件归属者"（CLI 名/任务名/`sync`），改名引入跨文件 schema 特例，且值本身不可混淆（`<cli-autoupdate>` 字面量），无机械验收收益。
+> - 🟡 **GPT-P1-1**（采纳）：时间字段格式契约统一——所有本项目生成的 ISO 时间字段（`runAt`/`startAt`/`setAt`/`lastUpdatedAt`/`mtime`/`beat`）MUST 以 **UTC 'o' round-trip**（恒 7 位小数 + `Z`）序列化；时间比较 MUST 在 DateTime/Ticks 层；MUST NOT 以 DateTimeOffset 序列化（与 §6 锁字段同源实测依据 CH-P1-3）。§5 总则/§5.9 总注/§7.1 助手/§15 断言四处同步。
+> - 🟢 **GPT-P1-2**（采纳）：版本格式突变处置模板——§9 SOP 错误场景示例补"版本格式突变（`VERSION_FORMAT_ERROR`）"（fail-closed 持续不升级 + 人工介入路径）；§14 补第 12 项已知风险声明。
+> - 🟢 **GPT-P1-3**（驳回）：§8"单页接口总览表"——脚本输入/输出（§7.2）、标记类别（§8）、文件副作用（§8.1）、分支路径（§9）已完备覆盖，信息零新增；并列事实源将放大"表↔正文不同步"风险（历轮审计最高频缺陷类型：v0.2.10 D1/D2/D4/D10、v0.2.12 CB-P2-3、v0.2.13 CB-P2-2 均属多源不一致）。以 §8.1 引言交叉索引句替代（零成本、不增事实源）。
+> - 🟢 **GPT-§4**（采纳）：§5.10 补"未来增强（非本版本范围）"——上游真实性若未来纳入保护范围，路线=GitHub release attestations（`gh release verify-asset`，命令存在性 2026-09-17 检索确认）/上游自签名；本版本边界不变。
 > **角色定位**：本文件是 **Plan / 契约**（治理路线图 Approved Plan 位）。契约层为硬约束；PowerShell 实现属 Executor 有界自治。
 > **关键词约定（RFC2119）**：**MUST / 必须** = 绝对硬约束；**SHOULD / 应** = 强烈推荐（可偏离须记录）；**MAY / 可** = 可选。契约层陈述默认为 MUST。
 
@@ -21,7 +22,7 @@
 
 > **🟢 v0.2.11 P2（路径硬编码理由）**：权威入口/工作区/staging 路径在 spec 中写死（§3/§4），**这是个人维护流程的有意选择**——减少变量、提高可验收性（固定路径使 §8.1 文件副作用对照表与验收 checklist 可机械断言"哪个文件该落哪"）。不提供 config、不参数化路径，非缺陷。
 
-**关于 LICENSE（修正事实矛盾）**：仓库根含 `LICENSE`（AGPL-3.0），系 initial commit 随归档 legacy 脚本（`.old/`）带入，**适用于 `.old/` 下历史代码**。本项目主体（SPEC + SOP + `*-v0.2.14.ps1` 新脚本）不面向外部发行、无贡献指南、不发布包；AGPL-3.0 不改变本流程的"个人维护"性质。
+**关于 LICENSE（修正事实矛盾）**：仓库根含 `LICENSE`（AGPL-3.0），系 initial commit 随归档 legacy 脚本（`.old/`）带入，**适用于 `.old/` 下历史代码**。本项目主体（SPEC + SOP + `*-v0.2.15.ps1` 新脚本）不面向外部发行、无贡献指南、不发布包；AGPL-3.0 不改变本流程的"个人维护"性质。
 
 参照系（批判借鉴设计哲学，不照搬形态）：
 - `Software_Update_Monitor_Spec_v0.2.2`（monitor-only）——本项目是其 Executor 下游延伸。
@@ -30,7 +31,7 @@
 **交付物三层**：
 1. **SPEC**（本文件）——设计契约。
 2. **执行 SOP**（`cli-autoupdate-sop.md`）——给定时任务执行 agent 逐字读；agent 只读 SOP。**当前状态：待产出**（SPEC 评审通过后产出）。
-3. **脚本**（`*-v0.2.14.ps1`）——模块化实现。**当前状态：待产出**（评审通过后产出，穿插 re-probe）。
+3. **脚本**（`*-v0.2.15.ps1`）——模块化实现。**当前状态：待产出**（评审通过后产出，穿插 re-probe）。
 
 > 工作区当前含 SPEC 系列文档、验收 checklist 候选稿（`cli-autoupdate-acceptance-checklist-candidate.md`）、LICENSE，及历轮评审/工具目录（`.supervisor/`、`.codebuddy/`、`.backup/` 等，均被 `.gitignore` 排除不跟踪）；`.old/` 归档 legacy 脚本亦在 `.gitignore` 内。SOP 与新脚本尚未产出，属评审阶段正常状态，非交付物定义矛盾。（🟢 v0.2.13 CB-P3-3：修正 v0.2.12"仅含 SPEC 系列文档 + `.old/` + LICENSE"的不实声明）
 
@@ -60,7 +61,7 @@
 
 | 层 | 位置 | 职责 | 谁能写 |
 |---|---|---|---|
-| **Staging** | claude/codex：`E:\...\CherryStudio\Toolchain\mise\installs\<tool>\<ver>\`；opencode：`<workspace>\staging\opencode\<ver>\` | 下载/升级/验证落点 | upgrade 脚本（运行锁内） |
+| **Staging** | claude/codex：`E:\Users\WIN_11\AppData\Roaming\CherryStudio\Toolchain\mise\installs\<tool>\<ver>\`（🟢 v0.2.15 GPT-P0-1：省略号消歧义，精确值/来源/失败语义见 §7.1 Cherry mise 环境契约）；opencode：`<workspace>\staging\opencode\<ver>\` | 下载/升级/验证落点 | upgrade 脚本（运行锁内） |
 | **Promotion** | `D:\AI\Programs\CLI\<name>\<name>.exe` | 全局唯一"正确版本"；last-known-good 回退源 | **仅 sync，且仅通过三重约束的 CLI，运行锁内** |
 
 所有 harness 固定调用 `D:\AI\Programs\CLI\<name>\<name>.exe`，不依赖 mise shim / `MISE_*` / PATH。
@@ -83,14 +84,14 @@ D:\AI\Programs\CLI\opencode\opencode.exe
 
 ```
 D:\AI\Workspace\automatic\CLI-autoupdate\
-├── SPEC-v0.2.14.md                   # 本文件（契约）
+├── SPEC-v0.2.15.md                   # 本文件（契约）
 ├── cli-autoupdate-sop.md             # 执行 SOP（给定时 agent，待产出）
-├── cli-common-v0.2.14.ps1            # 共享库
+├── cli-common-v0.2.15.ps1            # 共享库
 ├── probe-local-<cli>.ps1             # 每 CLI 一份（3 份）
 ├── probe-remote-<cli>.ps1            # 每 CLI 一份（3 份）
 ├── upgrade-<cli>.ps1                 # 每 CLI 一份（3 份）；behind 判定 + zip 安全解压
 ├── verify-<cli>.ps1                  # 每 CLI 一份（3 份）；装后功能测试 + sha256
-├── sync-v0.2.14.ps1                  # 共享单脚本；每 CLI copy 独立 try/catch
+├── sync-v0.2.15.ps1                  # 共享单脚本；每 CLI copy 独立 try/catch
 ├── archive-state.ps1                 # 每轮首步：争锁+归档+生成 runId
 ├── state\                            # 固定路径，最新覆盖
 │   ├── current-run.json              # runId + startAt
@@ -117,8 +118,11 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 > D:\AI\Programs\CLI\opencode\opencode.exe
 > D:\AI\Workspace\automatic\CLI-autoupdate\state\
 > D:\AI\Workspace\automatic\CLI-autoupdate\staging\opencode\
+> E:\Users\WIN_11\AppData\Roaming\CherryStudio\Toolchain\mise\installs\
 > ```
-> 三个权威入口路径无空格。**大小写约定（🟢 v0.2.13 CB-P3-4）**：实机目录为 `D:\AI\Programs\CLI\Codex\`（大写 C，2026-09-16 实测），spec 文本统一小写 `codex` 为书写约定——Windows 文件系统大小写不敏感，任意大小写等价，无功能影响。agent 调 `-File` 时改用正斜杠（如 `D:/AI/Programs/CLI/claude/claude.exe`）。
+> 上述路径均无空格。**大小写约定（🟢 v0.2.13 CB-P3-4）**：实机目录为 `D:\AI\Programs\CLI\Codex\`（大写 C，2026-09-16 实测），spec 文本统一小写 `codex` 为书写约定——Windows 文件系统大小写不敏感，任意大小写等价，无功能影响。agent 调 `-File` 时改用正斜杠（如 `D:/AI/Programs/CLI/claude/claude.exe`）。
+>
+> **🟢 v0.2.15 GPT-P0-1**：末行（mise installs 根）为本轮新增 canonical 行——该行即 claude/codex staging 根（原有末两行 workspace state/staging 为既有内容），精确值来源与失败语义见 §7.1 Cherry mise 环境契约（实测复核 2026-09-17：`installs\{claude,codex}\` 就位；claude=`installs\claude\2.1.273\claude.exe`、codex=`installs\codex\0.154.0\bin\codex.exe`）。
 
 **陈旧数据风险**：`<cli>-remote.json` 在 REMOTE_FAIL 时写 `{latest:null, error:<cause>}`；`<cli>-upgrade.json` 仅实际升级时写，读取前 MUST 校验 `runAt` 是否本轮。
 
@@ -128,7 +132,9 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 
 **时间字段规则（回应 GPT 4.1）**：除 `current-run.json`（用 `startAt`，表示本轮起点）、`*.pin`（用 `setAt`，表示 pin 设置时间）与 `opencode-npm-fallback.json`（用 `lastUpdatedAt`，sync 末步更新时间，非逐轮 state 而是跨轮计数器，§10.5）外，其余 state JSON（local/remote/upgrade/verified/sync）MUST 带 `runAt`（ISO UTC，表示该文件产出时间）。`runId`：`current-run.json`/`verified.json`/`sync.json` MUST 带；`local.json`/`remote.json`/`upgrade.json` SHOULD 带（关联本轮，防同分钟多轮混读）。
 
-所有 state/*.json 数据文件顶层带 `specVersion`（`"0.2.14"`）、`name`（🟢 v0.2.14 CH-P1-1：`run.lock` 为 §6 锁文件——存储格式亦为 JSON，但不带 specVersion/name、不参与 §11 归档，字段 schema 见 §5.9 run.lock 行）。时间内部 UTC，展示 UTC+08:00。**完整字段级 schema 见 §5.9（与示例一一对应）**。
+**时间字段序列化格式（🟢 v0.2.15 GPT-P1-1，MUST——统一"ISO UTC"写法，消除实现期"无小数/带 offset"漂移）**：所有本项目生成的 ISO 时间字段（`runAt`/`startAt`/`setAt`/`lastUpdatedAt`/`beat`/`mtime`——`mtime` 为外部文件时间、写入 state 时同样归一化）MUST 以 **UTC 'o' round-trip** 序列化——`ToUniversalTime()` 后恒 7 位小数 + `Z` 后缀（如 `2026-09-17T03:21:07.1234567Z`；PS 7.6.4 DateTime `'o'` 实测形态，与 §6 锁 `processStartTimeUtc` 同源契约）。**MUST NOT 以 DateTimeOffset 序列化**：其 `'o'` 输出 offset 形态 `+00:00` 后缀（非 `Z`）、破坏统一形态（§6 锁字段禁令同源；PS 7.6.4 实测 2026-09-16）。**时间比较（如新鲜度回退 `runAt ≥ startAt`）MUST 在 DateTime/Ticks 层**（MUST NOT 字符串比较——形态不一致时 string 比较语义二义，与 §6 CB-P1-2 同源）。
+
+所有 state/*.json 数据文件顶层带 `specVersion`（`"0.2.15"`）、`name`（🟢 v0.2.14 CH-P1-1：`run.lock` 为 §6 锁文件——存储格式亦为 JSON，但不带 specVersion/name、不参与 §11 归档，字段 schema 见 §5.9 run.lock 行）。时间内部 UTC，展示 UTC+08:00。**完整字段级 schema 见 §5.9（与示例一一对应）**。
 
 **更新源固定清单**：
 - claude/codex：mise registry（mise 自身校验包完整性）。
@@ -140,7 +146,7 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 
 ### 5.1 `<name>-local.json`（probe-local 产出）
 ```json
-{ "specVersion":"0.2.14", "name":"codex", "channel":"mise", "runAt":"...", "runId":"<SHOULD>",
+{ "specVersion":"0.2.15", "name":"codex", "channel":"mise", "runAt":"...", "runId":"<SHOULD>",
   "version":"0.154.0", "exePath":"...", "bytes":298169136, "mtime":"...",
   "sha256":"<mise SHOULD 计算；opencode 必填>",
   "healthy":true, "healthDetail":"ok", "error":null }
@@ -148,11 +154,12 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 - `healthy`：exe > 1MB 且 `--version` 可启动。
 - `healthDetail`：`ok` / `broken`（<1MB / stub / 文件缺失） / `probe-error`（`--version` 偶发超时或非零退出）。`broken` → REPAIR；`probe-error` → `PROBE_ERROR|` 不强制重装。
 - `sha256`：SHOULD 计算（opencode 必填；mise SHOULD 计算以支撑 §5.5 证据链）。
-- opencode staging 空 → `version=null, exePath=null, healthy=false, healthDetail=broken`。
+- opencode staging 空 → `version=null, exePath=null, healthy=false, healthDetail=broken`（标记侧 `LOCAL_EMPTY|<cli>`，§8）。
+- **mise 通道同语义（🟢 v0.2.15 GPT-P0-1）**：`installs\<tool>\` 不存在或为空 → 同上形态（`version=null`/`broken`）→ upgrade 走 REPAIR 通道；mise 环境本身不可用（`Get-MiseExePath` 缺失 / mise 子进程非零退出）→ REPAIR 失败或 remote 失败沿既有 `UPGRADE_FAIL|` / `REMOTE_FAIL|` 通道上报，**不新增标记**（§7.1 Cherry mise 环境契约）。
 
 ### 5.2 `<name>-remote.json`（probe-remote 产出）+ 下载完整性策略
 ```json
-{ "specVersion":"0.2.14", "name":"opencode", "channel":"github-binary", "runAt":"...", "runId":"<SHOULD>",
+{ "specVersion":"0.2.15", "name":"opencode", "channel":"github-binary", "runAt":"...", "runId":"<SHOULD>",
   "latest":"1.18.31", "sourceUrl":"https://gh.jasonzeng.dev/https://...",
   "directUrl":"https://github.com/anomalyco/opencode/releases/download/v1.18.31/opencode-windows-x64.zip",
   "assetName":"opencode-windows-x64.zip",
@@ -185,7 +192,7 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 
 ### 5.3 `<name>-upgrade.json`（upgrade 产出，仅实际升级/重装时写）
 ```json
-{ "specVersion":"0.2.14", "name":"codex", "runAt":"...", "runId":"<SHOULD>",
+{ "specVersion":"0.2.15", "name":"codex", "runAt":"...", "runId":"<SHOULD>",
   "fromVersion":"0.152.0", "target":"0.154.0", "exitCode":0, "ok":true,
   "sha256":"<opencode必填，mise SHOULD>", "error":null }
 ```
@@ -193,7 +200,7 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 
 ### 5.4 `<name>-verified.json`（verify 产出；晋升凭证）
 ```json
-{ "specVersion":"0.2.14", "name":"codex", "channel":"mise", "runAt":"...", "runId":"<本轮uuid, MUST>",
+{ "specVersion":"0.2.15", "name":"codex", "channel":"mise", "runAt":"...", "runId":"<本轮uuid, MUST>",
   "version":"0.154.0", "exePath":"...", "bytes":298169136,
   "sha256":"<opencode必填，mise SHOULD>",
   "healthy":true, "matchesTarget":true }
@@ -209,7 +216,7 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 
 ### 5.5 `sync.json`（sync 产出）+ 二进制证据链
 ```json
-{ "specVersion":"0.2.14", "name":"sync", "runAt":"...", "runId":"<本轮uuid, MUST>",
+{ "specVersion":"0.2.15", "name":"sync", "runAt":"...", "runId":"<本轮uuid, MUST>",
   "runStatus":"success",
   "summary":{ "probed":3, "upgraded":1, "synced":1, "failed":1 },
   "entries":[
@@ -227,13 +234,13 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 
 ### 5.6 `current-run.json`（archive-state 首步生成）
 ```json
-{ "specVersion":"0.2.14", "name":"<cli-autoupdate>", "runId":"<uuid>", "startAt":"<UTCISO>", "archivedTo":"archive\\<ts>" }
+{ "specVersion":"0.2.15", "name":"<cli-autoupdate>", "runId":"<uuid>", "startAt":"<UTCISO>", "archivedTo":"archive\\<ts>" }
 ```
-注：`name` 此处为任务名（非 CLI 名），`startAt` 替代 `runAt`（表本轮起点）。
+注：`name` 此处为**任务名（非 CLI 名），固定值 `<cli-autoupdate>`**；`startAt` 替代 `runAt`（表本轮起点）。🟢 v0.2.15 GPT-P0-3：本字段与其他文件的 CLI 名语义不同，**验收断言 MUST 分开编写**（schema 独立行见 §5.9）。
 
 ### 5.7 `<cli>.pin`（可选，手动锁定目标版本）
 ```json
-{ "specVersion":"0.2.14", "name":"codex", "pinVersion":"0.152.0", "reason":"user manual rollback", "setAt":"..." }
+{ "specVersion":"0.2.15", "name":"codex", "pinVersion":"0.152.0", "reason":"user manual rollback", "setAt":"..." }
 ```
 注：`setAt` 替代 `runAt`（表 pin 设置时间）。
 **pin 语义**：
@@ -247,7 +254,7 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 每状态文件落盘走「写 `*.tmp` → 回读校验关键字段 → `Move-Item` 原子替换」。同卷原子；跨卷先 Copy 到目标卷临时文件再同卷 Move。校验失败 → `RUNTIME_ERROR_FATAL|schema`、释放锁、终止整轮。
 
 **specVersion 不匹配处理（🟡 v0.2.8，回应 anthropic——使 checklist A 节断言有契约依据）**：
-- 读入 state 文件时若 `specVersion != 当前实现版本`（如读到 `"0.2.13"` 而本轮跑 `"0.2.14"`），**视为陈旧文件**：MUST NOT 作本轮决策依据消费（即本轮 probe/upgrade/verify/sync 的判定**不以旧 specVersion 文件内容为准**）。
+- 读入 state 文件时若 `specVersion != 当前实现版本`（如读到 `"0.2.14"` 而本轮跑 `"0.2.15"`），**视为陈旧文件**：MUST NOT 作本轮决策依据消费（即本轮 probe/upgrade/verify/sync 的判定**不以旧 specVersion 文件内容为准**）。
 - **行为分级**：
   - probe-local/probe-remote 类：本轮重新探测会自然覆盖旧文件（§5.1/§5.2 产出路径），不 fatal 终止——终止反破坏可用性（本任务目标是"让 CLI 可用"，旧 specVersion 不代表数据损坏，仅版本漂移）。
   - verified.json：旧 specVersion 的 verified.json **不作本轮晋升凭证**——sync 晋升三重约束①新鲜度（runId 唯一必要判据，仅字段缺失回退 runAt≥startAt）天然拦住跨轮旧凭证（旧轮 runId ≠ 本轮），specVersion 检查为第二道保险（防跨 specVersion 陈旧文件被误消费——🟡 v0.2.13 CB-P2-4 收紧后 runId 不匹配即不新鲜，同 specVersion 跨轮旧凭证已被 runId 判据拦住，specVersion 检查为纵深防御）。
@@ -259,8 +266,8 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 
 | 文件 | 字段 | 类型 | 必填 | 枚举/说明 |
 |---|---|---|---|---|
-| 全部 | specVersion | string | 是 | `"0.2.14"` |
-| 全部（除 sync 外） | name | string | 是 | CLI 名或任务名（current-run）；sync.json 顶层用 `name:"sync"` 标识文件本身 |
+| 全部 | specVersion | string | 是 | `"0.2.15"` |
+| 全部（除 sync 外） | name | string | 是 | CLI 名或任务名（current-run，语义见其独立行）；sync.json 顶层用 `name:"sync"` 标识文件本身 |
 | local/remote/upgrade | error | string\|null | 是 | null=无错；verified/sync/current-run/pin/npm-fallback 不带 error |
 | local/remote/upgrade/verified/sync | runAt | ISO | 是 | current-run 用 startAt，pin 用 setAt，npm-fallback 用 lastUpdatedAt |
 | local/remote/upgrade | runId | string(uuid) | SHOULD | 关联本轮 |
@@ -304,7 +311,8 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 | | entries[].integrityNote | string\|null | 条件 | ok/single-source/sha256-recomputed |
 | | entries[].reason | string\|null | 条件 | skip/target-locked 必填（🟡 v0.2.13 CB-P2-3） |
 | | entries[].ok | bool\|null | 条件 | copy 必填 |
-| current-run.json | startAt | ISO | 是 | 替代 runAt |
+| current-run.json | name | string | 是 | 🟢 v0.2.15 GPT-P0-3：**任务名（非 CLI 名），固定 `<cli-autoupdate>`**——与其他文件的 CLI 名语义不同，验收断言 MUST 分开编写 |
+| current-run.json | startAt | ISO | 是 | 替代 runAt（格式见 §5 时间字段序列化格式） |
 | | archivedTo | string | 是 | |
 | pin | pinVersion | string | 是 | |
 | | reason | string | 否 | |
@@ -319,6 +327,8 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 | | processStartTimeUtc | string | 是 | UTC 'o' round-trip，恒 7 位小数 + `Z` 后缀（DateTime 序列化实测自洽，🟢 v0.2.14 CH-P1-3）；陈锁接管比对值（§6） |
 
 > **run.lock 格式声明（🟢 v0.2.14 CH-P1-1）**：run.lock 为 §6 运行时锁文件，存储格式 = **JSON**（UTF-8；ConvertTo-Json 序列化 / ConvertFrom-Json 反序列化——§6 伪代码 `$lock.<field>` 访问语义的前提）。作为互斥结构**不带 specVersion/name**（不适用本表"全部"行），不参与 §11 归档。字段见上表 run.lock 行；`processStartTimeUtc` 格式契约（UTC 'o'、7 位小数）自 CB-P1-2 钉死，本表为其 schema 级落点，验收断言不再漏 run.lock。
+>
+> **时间字段格式总注（🟢 v0.2.15 GPT-P1-1）**：本表所有 ISO 类型时间字段（`runAt`/`startAt`/`setAt`/`lastUpdatedAt`/`beat`/`mtime`）MUST 以 UTC 'o' round-trip（恒 7 位小数 + `Z`）序列化——格式契约与比较规则见 §5 时间字段序列化格式；`run.lock.processStartTimeUtc` 原有契约（CB-P1-2/CH-P1-3）不变，与本注同源。
 
 ### 5.10 威胁模型声明（回应 GPT 4.4）
 
@@ -336,6 +346,8 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 **前提信任**：信任 GitHub repo `anomalyco/opencode` 维护者账户、信任 mise registry、信任反代 `gh.jasonzeng.dev`（双 hash 兜底部分缓解反代风险）。这些信任是本方案的前提，不在本项目保护范围内。
 
 此声明使审计意见收敛——"为何不做签名验证"在此有明确答：保护目标不含上游真实性，属用户对上游 repo 的信任前提。
+
+**未来增强（非本版本范围，🟢 v0.2.15 GPT-§4）**：若未来把"上游真实性"纳入保护范围，可行路线 = GitHub release attestations（`gh release verify` / `gh release verify-asset` 校验 release/asset digest 与 attestation subject 一致性——命令存在性经 GitHub CLI manual 检索确认 2026-09-17，**未在本机实测**）或上游自签名（RSA/Ed25519）。本版本仍只做 digest/sha256/双 hash/ZipSlip，不实现 attestation 验证；此节把"不做"升级为"现有路径 + 未来升级路线"，供后续版本评估。
 
 ---
 
@@ -410,8 +422,15 @@ else {
 
 ## 7. 模块清单
 
-### 7.1 共享库 `cli-common-v0.2.14.ps1`
-`Invoke-Proc`（`.cmd/.bat` 经 `cmd.exe /c`，异步排空 stdout/stderr 再 WaitForExit+Kill；超时 mise ls-remote 60s / upgrade 600s / exe --version 30s）、`Compare-SemVer`、`Get-CherryMiseEnv`/`Get-MiseExePath`/`Get-MiseInstallsDir`/`Get-NpmPrefix`、GitHub 加速/直连 URL 构造器 + `gh auth token` 读取、**zip 安全解压**（§7.2 ZipSlip）、SHA256 计算、checksum 文件解析（§5.2 MUST 规则）、健康检查分型、运行锁原语、状态文件原子写入助手、runId 生成与读取、凭证新鲜度判据（runId 唯一必要；仅字段缺失时 runAt 兜底——🟡 v0.2.13 CB-P2-4）、**锁时间字段序列化/解析/格式校验助手**（🟢 v0.2.13 CB-P1-2：UTC 'o' 序列化、RoundtripKind 解析、格式正则校验）、pin 读取。
+### 7.1 共享库 `cli-common-v0.2.15.ps1`
+`Invoke-Proc`（`.cmd/.bat` 经 `cmd.exe /c`，异步排空 stdout/stderr 再 WaitForExit+Kill；超时 mise ls-remote 60s / upgrade 600s / exe --version 30s）、`Compare-SemVer`、`Get-CherryMiseEnv`/`Get-MiseExePath`/`Get-MiseInstallsDir`/`Get-NpmPrefix`、GitHub 加速/直连 URL 构造器 + `gh auth token` 读取、**zip 安全解压**（§7.2 ZipSlip）、SHA256 计算、checksum 文件解析（§5.2 MUST 规则）、健康检查分型、运行锁原语、状态文件原子写入助手、runId 生成与读取、凭证新鲜度判据（runId 唯一必要；仅字段缺失时 runAt 兜底——🟡 v0.2.13 CB-P2-4）、**时间字段序列化/解析/格式校验助手**（🟢 v0.2.13 CB-P1-2 引入锁字段、🟢 v0.2.15 GPT-P1-1 扩展至全部时间字段：UTC 'o' 序列化、RoundtripKind 解析、格式正则校验）、pin 读取。
+
+**Cherry mise 环境契约（🟢 v0.2.15 GPT-P0-1，消除 staging 路径省略号解释空间）**：
+- **常量精确值**（§2/§4 的 `E:\...\CherryStudio\...` 即下列值，省略号写法废除）：`Get-MiseInstallsDir()` = `E:\Users\WIN_11\AppData\Roaming\CherryStudio\Toolchain\mise\installs`（claude/codex staging 根）；`Get-MiseExePath()` = `C:\Users\JasonPC\.cherrystudio\bin\mise.exe`；`Get-NpmPrefix()` = `E:\Users\WIN_11\AppData\Roaming\npm`；`Get-CherryMiseEnv()` 返回七键 `[ordered]` 常量：`MISE_DATA_DIR`=`E:\Users\WIN_11\AppData\Roaming\CherryStudio\Toolchain\mise`、`MISE_CONFIG_DIR`=`…\mise\config`、`MISE_SHIMS_DIR`=`…\mise\shims`、`MISE_CACHE_DIR`=`…\mise\cache`、`MISE_STATE_DIR`=`…\mise\state`、`MISE_YES`=`1`、`MISE_NO_ANALYTICS`=`1`。
+- **取值来源与形态**：Cherry Studio 注入环境实测（legacy `cli-common.ps1` 注释 verified 2026-09-16；本轮 2026-09-17 实测复核：mise 根/installs/claude 2.1.273/codex 0.154.0/mise.exe/npm prefix 均在盘上存在）。实现为**常量返回（getter 函数）而非运行时推导**——Cherry 的 mise 装在自定义 Toolchain 目录（**非**默认 `%LOCALAPPDATA%\mise`），且 `MISE_*` 不在普通 shell 环境变量内（实测），故不存在"推导算法/推导失败"分支；"失败标记"问题由下方失败语义回答。
+- **mise 子进程 MUST 带 MISE_\* env**（`Invoke-Proc -ExtraEnv (Get-CherryMiseEnv)`）——否则 mise 查默认位置、找不到 installs（实测 2026-09-16）。
+- **probe-local 文件系统扫描不依赖 MISE_\* env**：直接扫 `Get-MiseInstallsDir()\<tool>\` 目录树（取最高 semver 版本目录，按 ExeRelPath 定位 exe）。ExeRelPath 实测结构（2026-09-17 复核）：claude=`claude.exe`（`installs\claude\<ver>\claude.exe`）；codex=`bin\codex.exe`（`installs\codex\<ver>\bin\codex.exe`）。
+- **失败语义（不新增标记）**：staging 目录缺失/为空 → §5.1 语义（`LOCAL_EMPTY|`、broken → REPAIR 通道）；mise 环境不可用（exe 缺失 / 子进程非零退出）→ 沿既有 `UPGRADE_FAIL|` / `REMOTE_FAIL|` 上报，fail-closed 如实汇报。
 
 **Compare-SemVer 正规化与比较规则（🟡 v0.2.11 P0-3，回应 GPT——消除实现期"同输入不同分支"验收争议）**：
 - **输入正规化**：① 去 `v`/`V` 前缀（`v1.2.3`→`1.2.3`）；② 前后空白 trim；③ **段数必须恰为 3**（`Major.Minor.Patch`）——缺 patch（`1.2`）或缺 minor（`1`）→ 返回 incomparable；多于 3 段（`1.2.3.4`）→ 返回 incomparable；④ 三段必须全为非负整数（`1.2.x`/`1.2.-3`/`1.2.+4`→incomparable）；⑤ **build 元数据**（`+` 段，如 `1.2.3+build.7`）→ **剥除后比较**（忽略，非 incomparable，与 SemVer 规范一致）；⑥ **prerelease**（`-` 段，如 `1.2.3-rc.1`/`1.2.3-preview`/`1.2.3-beta`）→ 存在 `-` 段即视为 prerelease，prerelease < 同号 stable；两个 prerelease 互相比较时按 **SemVer 2.0.0 §11 precedence 规则**（🟡 v0.2.12 P1-4：原 v0.2.11 "不强制唯一性"与测试表"MUST 照表打"矛盾，改采标准规则使第 8 条 MUST 自洽）：按 `.` 分段比较——数字段按数值比较、非数字段按 ASCII 字典序比较、**数字段恒小于非数字段**、字段数少者小于多者（`rc.1`<`rc.2` 因数值 1<2；`alpha`<`beta` 因 ASCII；`rc.1`<`rc.beta` 因数字段<非数字段）；⑦ `null` 输入由**调用方前置判空**（§7.3 条件2 null 处理），函数本身不接 null，非 null 但不匹配上述正规化的字符串 → incomparable。
@@ -443,7 +462,7 @@ else {
 | `probe-remote-<cli>.ps1` | `mise ls-remote --json`；失败写 `latest:null,error` | `releases/latest` + 失败回退；记录 sourceUrl/directUrl/assetDigest/expectedSha256/checksumAssetUrl；认证 token 提额；403 限流 → `RATE_LIMITED|` |
 | `upgrade-<cli>.ps1` | 读 local+remote → 判 behind（§7.3 if-elif）；ACTIONABLE=`mise upgrade <tool>@latest`，REPAIR=`mise install <tool>@<remote.latest> --force`（🔴 v0.2.10 D4：`<ver>` 收敛为 `<remote.latest>`，与 §7.3 条件5/§5.3 对齐） | 读 remote → 下载（§5.2 完整性策略：digest 主路径 + checksum 解析 fallback）→ **ZipSlip 安全解压** → staging exe 计算 sha256 |
 | `verify-<cli>.ps1` | 重扫 mise installs → 全字段 + runId(MUST) + sha256 SHOULD | 跑 staging exe `--version` → 全字段 + runId(MUST) + sha256 |
-| `sync-v0.2.14.ps1`（共享） | 遍历三 CLI verified.json → 三重约束判定 → copy + 字节/sha256 复核 + `.previous` 备份 + 证据链 + summary 汇总 + opencode npm fallback 计数更新（§10.5） | 同左 |
+| `sync-v0.2.15.ps1`（共享） | 遍历三 CLI verified.json → 三重约束判定 → copy + 字节/sha256 复核 + `.previous` 备份 + 证据链 + summary 汇总 + opencode npm fallback 计数更新（§10.5） | 同左 |
 
 **ZipSlip 解压安全约束（硬约束）**：opencode zip 解压 MUST 满足：① 目标限定 `staging\opencode\<ver>\` 子树；② 拒绝含 `..\` / 绝对路径 / symlink / junction 的 entry；③ 发现非法 entry → 中止解压、清理已解压文件、`DOWNLOAD_FAIL|<cli> zip-slip`、不写 verified.json；④ 解压后校验目标 exe 存在且 > 1MB。
 
@@ -489,7 +508,7 @@ else {
 **策略说明**：stable-only 跟随 latest，不强制更新、不自动降级（降级用户手动 `mise use` 或建 pin）。`local > remote` 显式报告不静默跳过。agent 无差别调用。
 
 ### 7.4 版本号
-共享库与 sync 文件名含 `-v0.2.14`；probe/upgrade/verify 每 CLI 一份，首行 `$ScriptVersion='0.2.14'` + `# SPEC: v0.2.14`。
+共享库与 sync 文件名含 `-v0.2.15`；probe/upgrade/verify 每 CLI 一份，首行 `$ScriptVersion='0.2.15'` + `# SPEC: v0.2.15`。
 
 ---
 
@@ -498,6 +517,14 @@ else {
 每脚本 stdout 输出 ASCII 标记，agent 只读标记判分支，不解析 json、不心算。退出码：`0`=无事可做/已满足；`10`=dry-run 有动作；`11`=成功且产物已写；`2`=判定失败；`3`=执行失败或复核不过。
 
 > **🟡 v0.2.11 P0-1（exitCode 非权威 MUST）**：整轮成功/失败判定**各层一律以 `RUN_STATUS|...` stdout 标记为准**，exitCode **MUST NOT** 参与成功判定。理由：外部调度器/监控默认把 `exitCode != 0` 当失败，会误把 `2/3/10/11`（本 spec 的合法 recoverable/dry-run/产物已写码）标红，触发误告警/误重跑。对策：**MUST** 在 SOP/定时任务层明确"只解析 `RUN_STATUS` 标记判终态，exitCode 仅供人工/日志辅助"；spec 不改 exitCode 语义表（`11`=产物已写是验收机械化的判据之一，改 0＝破坏 §8.1 对照表）。agent 遇 `RUN_STATUS|success|` → 整轮成功；遇 `RUN_STATUS|failed|` → 整轮失败；二者均无 → 按保守 fatal 处理。
+
+**标记行语法（🟢 v0.2.15 GPT-P0-2，MUST——agent 解析的可靠性基础）**：
+1. 每个标记**独占一行**；标记名 MUST 位于**行首**（MUST NOT 有前导时间戳/日志级别/缩进）。
+2. 标记名 = 行首至**首个** `|` 之间的 token；取值 MUST ∈ 本表第一列枚举（ASCII 大写字母 + 下划线）。
+3. `|` 之后为 payload（至行尾）；payload 为空格分隔的字段（`<cli>` / `key=value` / 自由文本，逐标记结构见本表）。特例：`RUN_STATUS` 固定两段 `<status>|<summary>`。
+4. 除 `RUN_STATUS` 外，payload MUST NOT 含 `|`（保证"首个 `|` 切分"无二义）；payload MUST NOT 含换行；payload MAY 含非 ASCII 字符（如中文路径——可读性优先，不做限制）。
+5. 非标记的日志/说明行 MUST NOT 以"本表任一标记名 + `|`"形态开头（防误匹配；脚本如需在日志中引用标记名，须加前缀如 `NOTE:` 或改写措辞）。
+6. agent 解析规则：逐行读取 → trim 行尾空白 → 以行首 token 匹配标记枚举；未识别的**普通日志行**忽略；未识别但形态疑似标记（含 `|` 且具失败语义）→ 按本表末注"未列出的 failed 类标记按 fatal 处理"保守兜底。
 
 标记分两类：**fatal**（终止整轮）/ **recoverable**（标记该 CLI 失败后继续下一个）。
 
@@ -547,6 +574,8 @@ else {
 - 骨架级错误 → fatal 终止。
 
 ### 8.1 marker → exitCode → 文件副作用对照表（P1-4，回应 GPT，供验收机械化）
+
+> 🟢 v0.2.15（回应 GPT-P1-3）：脚本输入/输出见 §7.2、分支判定路径见 §7.3/§9 状态机、失败不覆盖规则见 §5.4/§5.3——本节不重复这些信息、不另设"单页总览"（并列事实源信息零新增且易漂移）。
 
 | 脚本 | 关键标记 | exitCode | 文件副作用（写/覆盖/不写） |
 |---|---|---|---|
@@ -634,7 +663,7 @@ SOP 写死分段 + 标记判定表，agent 逐字执行。**agent 在 pwsh 命�
 6. **pin mismatch 提醒（🟢 v0.2.12 P2-2，SHOULD）**：若某 CLI 存在 `pin` 但本轮 `SYNC_SKIP|pinned-mismatch`（`verified.version ≠ pinVersion`），收尾备注 SHOULD 显式提醒"该 CLI pin 连续未匹配，请确认 pinVersion 是否拼写错误或已超出保留窗口"（连续 N 轮未匹配阈值 N 由实现期定，spec 不硬定。🟢 v0.2.13 CB-P3-1：**"连续"判定数据源**＝回溯 `state/archive/` 最近 N 轮的 `sync.json` entries——该 CLI 条目 action=skip 且 reason 含 `pinned-mismatch` 即计一轮未匹配；不新增计数字段）。
 
 ### SOP 错误场景示例（MUST 覆盖）
-网络全断、目标 exe 锁定、opencode 下载失败（含 digest-mismatch/checksum-mismatch/dual-hash-mismatch/zip-slip）、verify 失败不晋升、凭证缺失刷新（UPTODATE_REFRESH）、手动回退 pin（pinned-mismatch/修复性晋升）、被锁阻塞（含 §6 恢复手册步骤）、GitHub 限流（RATE_LIMITED）。每例给"输入状态 → 标记序列 → agent 分支 → 汇报文本"。
+网络全断、目标 exe 锁定、opencode 下载失败（含 digest-mismatch/checksum-mismatch/dual-hash-mismatch/zip-slip）、verify 失败不晋升、凭证缺失刷新（UPTODATE_REFRESH）、手动回退 pin（pinned-mismatch/修复性晋升）、被锁阻塞（含 §6 恢复手册步骤）、GitHub 限流（RATE_LIMITED）、**版本格式突变（VERSION_FORMAT_ERROR——🟢 v0.2.15 GPT-P1-2：上游发版违反三段 SemVer 致该 CLI fail-closed 持续不升级；agent 如实汇报不自动处置，人工介入路径见 §14-12）**。每例给"输入状态 → 标记序列 → agent 分支 → 汇报文本"。
 
 ### 推送策略
 配 channel_ids → 每次执行后必推送；未配 → 不推送。凭证/sha256/token 不写入 prompt/状态文件/日志/推送平台。
@@ -669,10 +698,10 @@ staging 保留最近 2 版；升级失败 → 不写新鲜凭证 → sync 不动
 
 **计数机制（🟡 v0.2.9，回应 anthropic P1-2——原 §10.5 仅定阈值未定义计数，名实不符）**：采用方案(a)轻量持久化计数文件 `state/opencode-npm-fallback.json`：
 ```json
-{ "specVersion":"0.2.14", "name":"opencode", "consecutiveSyncSuccess":<int>,
+{ "specVersion":"0.2.15", "name":"opencode", "consecutiveSyncSuccess":<int>,
   "lastUpdatedAt":"<ISO>", "uninstalled":false }
 ```
-- **更新时机**：sync 末步（sync-v0.2.14.ps1 汇总后）更新。
+- **更新时机**：sync 末步（sync-v0.2.15.ps1 汇总后）更新。
 - **成功计数**：本轮 opencode 条目 sync 成功（`SYNC_COPY` 或 `already-current` 幂等 skip）→ `consecutiveSyncSuccess += 1`。🟡 **v0.2.12 P1-5（封顶）+ v0.2.13 CB-P2-1（冻结规则统一）**：`uninstalled==true` 后**完全冻结**——成功不递增、**失败亦不归零**，定格 10（v0.2.12"失败仍归零"与"定格 10"矛盾，废除；归零条款仅适用 `uninstalled==false`）。计数目的已达成（触发卸载），字段此后仅作"已达成并卸载"的历史标记；卸载后的失败语义由 `sync.json` entries `ok=false` 与 `fetch_run.log` 记录。`uninstalled==false` 时正常累加（0→10 触发卸载）。
 - **失败归零**：本轮 opencode sync 失败（copy 失败/复核不过/目标锁定/三重约束不满足且非 already-current 的 `SYNC_SKIP`）→ `consecutiveSyncSuccess = 0`。**注**：`ALL_REMOTE_FAIL` 不属"未跑 sync"——§8/§9 明确其直进 sync，opencode 条目走 `SYNC_SKIP`（无新鲜凭证，非 already-current）即归零，已被本条覆盖。**已卸载后失败（🟡 v0.2.13 CB-P2-1 修订）**：`uninstalled==true` 后失败**不归零**（完全冻结的一部分）——失败语义由 `sync.json` entries `ok=false` 与 `fetch_run.log` 记录；`uninstalled` 一旦 true 不回退。
 - **🔴 v0.2.10 D5 唯一规则（闭合与 §8.1 冲突）**：计数更新**仅当 sync 完整执行到末步**（opencode 条目已处理）才发生——按上述 +1/归零。**fatal 中断（sync 未完整执行：`LOCKED|`/`STATE_MISSING|`/`PARSE_ERROR|`/`RUNTIME_ERROR_FATAL|` 在 sync 末步前触发）→ 不更新计数**（保持旧值，与 §8.1 `RUN_STATUS|failed` 行"fatal 前已处理则更新，否则不动"一致）。fatal 不归零——避免一次骨架级中断清掉累计进度。
@@ -693,7 +722,7 @@ staging 保留最近 2 版；升级失败 → 不写新鲜凭证 → sync 不动
 
 ## 12. 与参照系差异（自检）
 
-| 维度 | Software_Update_Monitor v0.2.2 | Release-Monitor | 本项目 v0.2.14 |
+| 维度 | Software_Update_Monitor v0.2.2 | Release-Monitor | 本项目 v0.2.15 |
 |---|---|---|---|
 | 范围 | monitor-only | monitor-only | monitor+download+install+switch+rollback |
 | 模块粒度 | — | 合并 monitor.ps1 | 4 拆模块 |
@@ -705,7 +734,7 @@ staging 保留最近 2 版；升级失败 → 不写新鲜凭证 → sync 不动
 
 ---
 
-## 13. v0.2.14 迁移项（首次执行）+ checklist
+## 13. v0.2.15 迁移项（首次执行）+ checklist
 
 1. 新建 `D:\AI\Programs\CLI\{claude,codex,opencode}\`（claude 已手动补全；新机重装仍需）。
 2. **首轮 seed 路径**：由 `UPTODATE_REFRESH` 天然完成——首轮即使所有 CLI UPTODATE，凭证缺失触发 verify 产出 seed 凭证 → sync copy。D 盘已有正确版本则 `already-current` 幂等跳过。
@@ -721,14 +750,14 @@ staging 保留最近 2 版；升级失败 → 不写新鲜凭证 → sync 不动
    - 全部勾选后才执行清空。
 5. opencode 安装源切换：npm → GitHub binary staging；首次 probe-local 扫 staging（空 → LOCAL_EMPTY → 触发首次 upgrade）。
 6. mise 配置加 `upgrade.auto_prune=false`。
-7. 现有散脚本（`.old/`）→ 按 §7 模块清单拆分重命名（-v0.2.14 / $ScriptVersion）。`.old/` legacy 脚本受仓库 AGPL-3.0 LICENSE 约束，新脚本沿用同 LICENSE（仓库既有）。
+7. 现有散脚本（`.old/`）→ 按 §7 模块清单拆分重命名（-v0.2.15 / $ScriptVersion）。`.old/` legacy 脚本受仓库 AGPL-3.0 LICENSE 约束，新脚本沿用同 LICENSE（仓库既有）。
 8. 产出 `cli-autoupdate-sop.md`（含 §6 锁恢复手册 + §9 错误场景示例）。
 
 **配置/数据迁移**：无 config.json、无 SQLite/DB、无用户数据。状态 schema 跨版本靠 `specVersion` 标识。
 
 ---
 
-## 14. 待确认 / 已知风险（v0.2.14 闭合状态，回应 anthropic v0.2.11 P0-1/P0-2 + GPT v0.2.10 P0-1/P0-2/P0-3 + CodeBuddy D1–D12 + CodeBuddy v0.2.12 审计 CB-P1~CB-P3 + Cherry v0.2.13 审计 CH-P1~CH-P2）
+## 14. 待确认 / 已知风险（v0.2.15 闭合状态，回应 anthropic v0.2.11 P0-1/P0-2 + GPT v0.2.10 P0-1/P0-2/P0-3 + CodeBuddy D1–D12 + CodeBuddy v0.2.12 审计 CB-P1~CB-P3 + Cherry v0.2.13 审计 CH-P1~CH-P2 + GPT v0.2.14 审计 GPT-P0~GPT-P1）
 
 > **驳回 GPT"全部关闭§14"（过度）**：真未知风险（反代可靠性/PID 沙箱陈锁判定/极端时钟回拨）需实现期实测，伪声明"closed"反误导验收。此处区分**已闭合**（实测/规则已定）与**已知风险声明**（验收口径已定、待实现期实测兜底）。
 
@@ -746,14 +775,15 @@ staging 保留最近 2 版；升级失败 → 不写新鲜凭证 → sync 不动
 8. **时钟回拨**：🟡 v0.2.13 CB-P2-4 判据收紧——`runId` 匹配为唯一必要条件（runId 存在但不匹配→恒不新鲜，runAt 不放行）；仅 runId 字段缺失时回退 `runAt ≥ startAt`（兼容无 runId 旧凭证，此兜底窗口内极端时钟回拨仍可能误判——已知边界）。验收口径：runId 匹配即新鲜；不匹配即不新鲜（无论 runAt）。待实现期模拟时钟回拨测试覆盖。
 10. **锁获取与 current-run.json 写入间崩溃（🟢 v0.2.8，回应 anthropic）**：archive-state 先 `CreateNew` 拿锁、再写本轮 `runId` 到 `current-run.json`。若进程在这两步之间崩溃，下一轮续锁时"锁内记录的 runId ≠ current-run.json 的 runId"（current-run.json 仍是上一轮或半写残值），必然触发 `LOCKED|` 进入人工清锁流程。**fail-closed 覆盖**（无安全风险——锁不释放则 sync 不跑，最坏停一轮），**仅人工清锁成本**（需走 §6 恢复手册四条件确认）。行为已定（§6 续锁规则已闭合），非待实测项，列此保持 §14 完整性风格一致。注：锁半写导致的 pid/processStartTimeUtc 字段异常由 §6 伪代码的异常分型与格式校验保守接住（CB-P1-1/CB-P1-2，均判 `LOCKED|`）。
 11. **prerelease-vs-REPAIR 优先级边界（🟡 v0.2.9，回应 anthropic P1-1）**：条件3（TARGET_PRERELEASE）排在条件5（REPAIR）之前。若某 CLI 本地 broken 且 `remote.latest` 被判为 prerelease（新项目暂只有 prerelease，或探测边界 bug），TARGET_PRERELEASE 先命中→REPAIR 永远排不上号，本地损坏安装无限期得不到修复，直到出现 stable 版本。此为 v0.2.8 修的"null 下沉卡死"的**同构问题**（都是"remote 端某状态导致 broken 本地走不到 REPAIR"），但当前 spec 只堵了 null 口子。**不重排顺序**：把 4/5（健康修复）提到 1-3（策略前提）前面会与 stable-only 冲突（broken 时强制装 prerelease 违反 stable-only 原则）。三 CLI（claude/codex/opencode）持续有 stable 发布，触发概率极低。**验收口径**：列为已知风险，不伪关闭；若实测出现 prerelease-only 期，需人工介入（手动 pin 到最近 stable 或等待 stable 发布）。
+12. **上游版本格式突变（🟢 v0.2.15 GPT-P1-2）**：若某 CLI 上游发版改用非三段 SemVer 格式（如 `1.2` / `2026.09`），Compare-SemVer 恒 incomparable → 条件2 `VERSION_FORMAT_ERROR|` 命中 → 该 CLI 持续不升级（fail-closed 安全方向：不执行动作、D 盘 last-known-good 不受影响；代价=版本长期停滞 + 每轮如实汇报）。触发概率低（三 CLI 上游均长期遵循 `x.y.z`）。**验收口径**：agent 不自动处置、如实汇报；人工介入路径=①核实上游格式变更意图（临时异常 → 等待修复）②必要时流程外手动安装/回退保持该 CLI 可用③若系长期决策 → 评估修订 Compare-SemVer 规则并升 spec 版本后恢复自动跟随。
 
 ---
 
 ## 15. 测试策略
 
-- **单元**：`Compare-SemVer`（边界 + §7.1 测试表 12 条 + §7.3 if-elif 顺序全覆盖）、`Invoke-Proc`（超时/Kill）、健康检查分型、SHA256 计算、ZipSlip 解压（构造恶意 entry）、checksum 文件解析（两格式/多资产匹配/空白注释行/同名 hash 冲突→checksum-mismatch）、凭证新鲜度判据（runId 匹配即新鲜 / runId 存在但不匹配→runAt 不放行（时钟回拨模拟）/ runId 字段缺失→runAt 兜底）、pin 规则（修复性晋升 / pinned-mismatch / pin 不阻断 upgrade）、sync 异常隔离（单 CLI copy 失败不冒泡）、**陈锁接管四分支全覆盖 + 异常分型/格式校验断言（🔴 v0.2.13 CB-P1-1/CB-P1-2/CB-P3-2：按 §6 伪代码断言——①查询异常分型：锁内 pid 为 null/非法（实测抛 `ParameterBinding*`）或权限拒绝等 → 未证明死亡→`LOCKED|`；②`Get-Process` 正常未命中（`ProcessCommandException` 分型）→TAKEOVER 允许重争；③命中且 tick 匹配（'o' 格式锁值，Ticks 层比较）→同一实例仍存活→`LOCKED|` 不抢；④命中但 tick 不匹配（锁值已过格式校验）→PID 被复用→TAKEOVER；⑤锁时间字段缺失/格式不合契约（本地偏移/精度截断/非字符串/解析失败）→保守 `LOCKED|`；⑥负例断言：同一时刻的 string 形态 `-eq` 比较（实测恒 False）MUST NOT 出现在实现中）**。
+- **单元**：`Compare-SemVer`（边界 + §7.1 测试表 12 条 + §7.3 if-elif 顺序全覆盖）、`Invoke-Proc`（超时/Kill）、时间字段序列化/解析断言（UTC 'o' 恒 7 位小数 + `Z`；比较走 Ticks 层；负例断言 MUST NOT DateTimeOffset——🟢 v0.2.15 GPT-P1-1）、健康检查分型、SHA256 计算、ZipSlip 解压（构造恶意 entry）、checksum 文件解析（两格式/多资产匹配/空白注释行/同名 hash 冲突→checksum-mismatch）、凭证新鲜度判据（runId 匹配即新鲜 / runId 存在但不匹配→runAt 不放行（时钟回拨模拟）/ runId 字段缺失→runAt 兜底）、pin 规则（修复性晋升 / pinned-mismatch / pin 不阻断 upgrade）、sync 异常隔离（单 CLI copy 失败不冒泡）、**陈锁接管四分支全覆盖 + 异常分型/格式校验断言（🔴 v0.2.13 CB-P1-1/CB-P1-2/CB-P3-2：按 §6 伪代码断言——①查询异常分型：锁内 pid 为 null/非法（实测抛 `ParameterBinding*`）或权限拒绝等 → 未证明死亡→`LOCKED|`；②`Get-Process` 正常未命中（`ProcessCommandException` 分型）→TAKEOVER 允许重争；③命中且 tick 匹配（'o' 格式锁值，Ticks 层比较）→同一实例仍存活→`LOCKED|` 不抢；④命中但 tick 不匹配（锁值已过格式校验）→PID 被复用→TAKEOVER；⑤锁时间字段缺失/格式不合契约（本地偏移/精度截断/非字符串/解析失败）→保守 `LOCKED|`；⑥负例断言：同一时刻的 string 形态 `-eq` 比较（实测恒 False）MUST NOT 出现在实现中）**。
 - **集成**：每 CLI probe→upgrade→verify 串；覆盖 §7.3 九分支 + checksum-mismatch/dual-hash-mismatch/zip-slip/RATE_LIMITED。
-- **端到端**：archive→三 CLI cycle→sync；archive 段断言成功标记 `ARCHIVE_OK|<runId>`（🟢 v0.2.14 CH-P1-2）；覆盖成功/uptodate-refresh/网络全断/exe 锁定/verify 失败/pin 锁定（含修复性晋升）/被锁阻塞（含恢复手册）/限流九场景；穿插 re-probe（含 `UPTODATE_SKIP` 可达断言，CH-P2-1）。
+- **端到端**：archive→三 CLI cycle→sync；archive 段断言成功标记 `ARCHIVE_OK|<runId>`（🟢 v0.2.14 CH-P1-2）；全段 stdout **标记行语法合规断言**（独占一行/行首即标记名/标记名 ∈ §8 枚举/除 `RUN_STATUS` 外单 `|`/日志行不以标记形态开头——🟢 v0.2.15 GPT-P0-2）；覆盖成功/uptodate-refresh/网络全断/exe 锁定/verify 失败/pin 锁定（含修复性晋升）/被锁阻塞（含恢复手册）/限流九场景；穿插 re-probe（含 `UPTODATE_SKIP` 可达断言，CH-P2-1）。
 - **环境**：仅 Windows 11 + PowerShell 7.6.4 + Cherry 沙箱。
 - **验收 checklist（独立交付物，回应 GPT Checklist A-N）**：冻结后产出 `cli-autoupdate-acceptance-checklist.md`——每条 MUST/SHOULD 拆成"条款 → 可观测证据（哪个 json 字段/stdout 标记/文件副作用，见 §8.1 对照表）→ 测试用例"。与 §15 对齐。GPT Checklist A-N（交付物/环境/锁/state 契约/标记/archive/probe-local/probe-remote/upgrade 九分支/verify/sync 三重约束+证据链+异常隔离/ZipSlip/回退/SOP 编排）作为该 checklist 骨架。**不塞进 spec 主体**（守 Plan/契约层定位）。
 
@@ -780,9 +810,10 @@ staging 保留最近 2 版；升级失败 → 不写新鲜凭证 → sync 不动
 | v0.2.11 | 2026-09-16 | GPT 独立审计复核（对 v0.2.10），契约级补充（不涉架构）：🟡 P0-1（降级采纳 option A）§8 钉死"成功判定各层只看 `RUN_STATUS` 标记，exitCode 非权威 MUST"（定时任务/SOP 层不依 exitCode 判成功），驳回 option B（exitCode 表重构＝过度工程）；🟡 P0-2（降 P1 采纳）§6 run.lock 补 `processStartTimeUtc`（SHOULD）+ 陈锁接管加 PID+startTime 双校验（spec 本已 fail-closed 安全，误接管→拒→`LOCKED`＝假阴性方向，故降 P0→P1，非堵安全漏洞）；🟡 P0-3 §7.1 `Compare-SemVer` 正规化规则补全（缺 patch/4+段→incomparable，build→忽略非 incomparable，含 `-`→prerelease）+ 12 条测试表；🟢 P1-1 §5.2/§17 删内部 cite 占位符 + "2025-06-03 起"软化为实测措辞；🟢 P2 §0 补硬编码路径理由（减变量提可验收性）。驳回 P1-2（cause 全枚举＝过度工程，运行时 cause 开放集合不可全枚举，spec 已枚举关键 cause）；§15 补 PID 重用/锁误接管模拟用例（时钟回拨/specVersion 漂移已覆盖） | `SPEC-v0.2.11.md` |
 | v0.2.12 | 2026-09-16 | anthropic 独立审计复核（对 v0.2.11），闭合两处此前审计盲区（§6 锁接管 + schema↔更新逻辑文字对不上，全契约级修订）：🔴 P0-1（采纳，**修正 v0.2.11 引入的回归**）§6 陈锁接管 PID+startTime 双校验逻辑写反——原"StartTime 匹配→确认已死→接管"会导致误接管存活进程锁（数据损坏级），改伪代码钉死（未命中→已死可重争；命中且 StartTime 匹配→仍存活 LOCKED；命中但不匹配→PID 被复用可重争）；🔴 P0-2 `processStartTimeUtc` 升 MUST + 字段缺失 fallback（保守 LOCKED）；🟡 P1-3 §8.1 `ALL_REMOTE_FAIL` 行脚本列改"agent/SOP 聚合"、exitCode 标"不适用"（与 §8 D9 对齐）；🟡 P1-4 §7.1 prerelease 排序删"不强制唯一性"矛盾措辞，改采 SemVer 2.0.0 §11 precedence；🟡 P1-5 §10.5/§5.9 `consecutiveSyncSuccess` 卸载后冻结定格 10（闭合"0-10"声明与"+=1 不封顶"矛盾）；🟢 P2-1 sync.json 顶层补 `runStatus`；🟢 P2-2 §9 汇报模板加 pin mismatch SHOULD 提醒；🟢 P2-3 DISK_FULL/EXE_LOCKED 给 SHOULD 默认阈值/检测方式；🟢 P2-4 §5.2 checksum 同名 hash 冲突判 `checksum-mismatch` fail-closed；🟢 P2-5 §16 加同日多轮说明；🟢 P2-6 §6 锁接管以伪代码落 spec，流程建议本轮后冻结进实现 | `SPEC-v0.2.12.md` |
 | v0.2.13 | 2026-09-16 | CodeBuddy 独立审计复核（对 v0.2.12），闭合 §6 伪代码两处 fail-open 缺口 + 判据/枚举/表述对齐（全契约级修订，11 项意见全部采纳）：🔴 CB-P1-1 §6 catch 异常分型——仅 `ProcessCommandException`（PID 无活跃进程）判死→TAKEOVER，`ParameterBinding*`（锁内 pid null/非法，锁半写场景）/权限拒绝→未证明死亡→LOCKED（实测复现三类异常分型）；🔴 CB-P1-2 §6 时间比较钉死——写侧 UTC 'o' round-trip（tick 精度）MUST + 读侧 Parse(RoundtripKind)+归一+Ticks 比较 MUST + 锁值格式校验前置（本地偏移/精度截断/解析失败→LOCKED；实测 string 形态 -eq 同一时刻恒 False）；🟡 CB-P2-1 §10.5/§5.9 uninstalled=true 后完全冻结（失败不归零，定格 10，选审计方案 b）；🟡 CB-P2-2 §5.5 runStatus 语义收窄（sync 本次执行终态）+"本轮完整成功"须联判 runId + fatal 落盘形态定义（sync 异常分支原子写入 failed 版）+ 废除"单文件自洽/无字段=腰斩"过强声明；🟡 CB-P2-3 SYNC_TARGET_LOCKED 落盘钉死 action=target-locked + reason 必填（§8.1/§5.9 对齐）；🟡 CB-P2-4 凭证新鲜度收紧（runId 唯一必要条件，仅字段缺失回退 runAt；§1-11/§5.4/§5.8/§7.3/§14-8/§17 六处对齐）；🟢 CB-P3-1 pin 连续 mismatch 数据源=archive 回溯最近 N 轮 sync.json entries；🟢 CB-P3-2 分支计数统一四分支+扩充断言集；🟢 CB-P3-3 §0 仓库内容声明按实修正；🟢 CB-P3-4 Codex 大小写注（实机大写 C，Windows 不敏感等价）；🟢 CB-P3-5 checksum 路径期望 hash 落 expectedSha256 + 来源可机械区分（assetDigest==null && expectedSha256!=null） | `SPEC-v0.2.13.md` |
-| v0.2.14 | 2026-09-16 | Cherry 独立审计复核（对 v0.2.13），契约层补全与措辞澄清（6 项意见：采纳 3、部分采纳 1、驳回 1[实测证伪]、固化其验证要求 1，无 §6 判定方向变更）：🔴 CH-P1-1 run.lock 存储格式钉死 JSON + 纳入 §5.9 schema 总表（runId/start/beat/pid/processStartTimeUtc 五字段；§4/§5/§6 三处同步），CB-P1-2 格式契约获 schema 级落点；🔴 CH-P1-2 archive-state 补成功标记 `ARCHIVE_OK\|<runId>`（§8 表/§8.1/§9 状态机三处同步，闭合"唯 archive 成功无 `*_OK\|`"不对称——agent 判 OK 依据此前悬空：exitCode 非权威 + 沉默与崩溃不可区分）；🟢 CH-P1-3 驳回（PS 7.6.4 实测证伪）——DateTime 'o' 恒 7 位小数（整秒输出 `.0000000`，与 Kind 无关）、DateTimeOffset 亦然，写读两侧自洽，Cherry 所虑"整秒永不 TAKEOVER"断档不存在；§6 固化实测结论 + MUST NOT 以 DateTimeOffset 序列化锁时间（offset 后缀非 Z，恒触发保守 LOCKED）；🟢 CH-P2-1 §9 注明 re-probe 可达性（UPTODATE_SKIP 仅同轮穿插可达，标准单轮不可达，re-probe 属 SOP 可选步骤）；🟢 CH-P2-2 §8.1 failed 行计数措辞澄清（冻结态"更新"=no-op 保持定格 10）；🟢 CH-P2-3 §14 注明历史连续编号跨组不连续（驳回重编号方案：§14-N 为历轮审计与正文交叉引用锚点） | `SPEC-v0.2.14.md`（本文件） |
+| v0.2.14 | 2026-09-16 | Cherry 独立审计复核（对 v0.2.13），契约层补全与措辞澄清（6 项意见：采纳 3、部分采纳 1、驳回 1[实测证伪]、固化其验证要求 1，无 §6 判定方向变更）：🔴 CH-P1-1 run.lock 存储格式钉死 JSON + 纳入 §5.9 schema 总表（runId/start/beat/pid/processStartTimeUtc 五字段；§4/§5/§6 三处同步），CB-P1-2 格式契约获 schema 级落点；🔴 CH-P1-2 archive-state 补成功标记 `ARCHIVE_OK\|<runId>`（§8 表/§8.1/§9 状态机三处同步，闭合"唯 archive 成功无 `*_OK\|`"不对称——agent 判 OK 依据此前悬空：exitCode 非权威 + 沉默与崩溃不可区分）；🟢 CH-P1-3 驳回（PS 7.6.4 实测证伪）——DateTime 'o' 恒 7 位小数（整秒输出 `.0000000`，与 Kind 无关）、DateTimeOffset 亦然，写读两侧自洽，Cherry 所虑"整秒永不 TAKEOVER"断档不存在；§6 固化实测结论 + MUST NOT 以 DateTimeOffset 序列化锁时间（offset 后缀非 Z，恒触发保守 LOCKED）；🟢 CH-P2-1 §9 注明 re-probe 可达性（UPTODATE_SKIP 仅同轮穿插可达，标准单轮不可达，re-probe 属 SOP 可选步骤）；🟢 CH-P2-2 §8.1 failed 行计数措辞澄清（冻结态"更新"=no-op 保持定格 10）；🟢 CH-P2-3 §14 注明历史连续编号跨组不连续（驳回重编号方案：§14-N 为历轮审计与正文交叉引用锚点） | `SPEC-v0.2.14.md` |
+| v0.2.15 | 2026-09-17 | GPT 独立审计复核（对 v0.2.14），7 项意见：采纳 5、部分采纳 1、驳回 1（全契约层补全/消歧，不改判定语义、不涉 §6 锁逻辑）：🔴 GPT-P0-1 mise staging 路径省略号消歧义（§2 精确化为 `E:\Users\WIN_11\AppData\Roaming\CherryStudio\Toolchain\mise\installs\`——实测复核 2026-09-17〔mise 根/installs/claude 2.1.273/codex 0.154.0/mise.exe/npm prefix 均在盘〕+ legacy verified 2026-09-16；§4 Canonical Path 补行；§7.1 新增 Cherry mise 环境契约〔getter 常量精确值 + MISE_* 七键 + "mise 子进程 MUST 带 env / 文件扫描不依赖 env" + ExeRelPath 实测结构〔claude=`claude.exe`、codex=`bin\codex.exe`〕+ 失败沿既有 `UPGRADE_FAIL|`/`REMOTE_FAIL|` 上报不新增标记〕；§5.1 补 mise 空目录语义同 opencode staging 空 → REPAIR）；🔴 GPT-P0-2 §8 标记行语法 MUST 六条（独占行/行首/首个 `|` 切分/枚举约束/除 RUN_STATUS 外单 `|`/日志行禁标记形态 + agent 解析规则）；🟡 GPT-P0-3 current-run.name 任务名语义注记强化（§5.6 注 + §5.9 独立 schema 行〔固定 `<cli-autoupdate>`、验收断言 MUST 分开〕；**驳回改名 `taskName`**——name 跨文件统一表达"文件归属者"，改名引入 schema 特例、值本身不可混淆、无机械验收收益）；🟡 GPT-P1-1 时间字段格式契约统一（全部 ISO 时间字段 UTC 'o' round-trip = 恒 7 位小数 + `Z`；比较 MUST DateTime/Ticks 层；MUST NOT DateTimeOffset——与 §6 锁字段同源实测 CH-P1-3；§5 总则 + §5.9 表注 + §7.1 助手 + §15 断言四处同步）；🟢 GPT-P1-2 版本格式突变处置模板（§9 SOP 错误场景示例 + §14-12 已知风险声明：fail-closed 持续不升级 + 人工介入路径）；🟢 GPT-P1-3 驳回（§8 单页接口总览表——信息零新增、并列事实源易漂移，以 §8.1 交叉索引句替代）；🟢 GPT-§4 采纳（§5.10"未来增强"入口：release attestations/`gh release verify-asset` 路线，非本版本范围） | `SPEC-v0.2.15.md`（本文件） |
 
-> **🟢 v0.2.12 P2-5（版本历史日期说明）**：v0.1–v0.2.14 均标注 2026-09-16——确系同日多轮密集迭代（设计日内跨模型审计收敛）。日期列精度为"日"，外部审计者如需迭代节奏，可按版本号顺序（每轮一行）追溯；后续进入实现期的 SOP/脚本版本将带时分。
+> **🟢 v0.2.12 P2-5（版本历史日期说明）**：v0.1–v0.2.14 标注 2026-09-16、v0.2.15 标注 2026-09-17——v0.1–v0.2.14 系同日跨模型审计密集收敛（设计日），v0.2.15 为次日复核轮。日期列精度为"日"，外部审计者如需迭代节奏，可按版本号顺序（每轮一行）追溯；后续进入实现期的 SOP/脚本版本将带时分。
 
 ---
 
@@ -815,4 +846,6 @@ staging 保留最近 2 版；升级失败 → 不写新鲜凭证 → sync 不动
 | dry-run | 无 -Execute 模式，预演 |
 | fail-closed | 失败 → 终止不降级不静默跳过 |
 | LICENSE | 仓库根 AGPL-3.0，适用于 `.old/` legacy 脚本；本项目主体不面向外部发行 |
+| 标记行语法 | §8 契约：标记独占一行、行首即标记名（禁前导时间戳/级别）、首个 `|` 切分且标记名 ∈ §8 表枚举、除 `RUN_STATUS` 外 payload MUST NOT 含 `|`、非标记日志行禁以标记形态开头（🟢 v0.2.15 GPT-P0-2） |
+| Cherry mise 环境 | `Get-CherryMiseEnv`（MISE_* 七键常量）+ `Get-MiseInstallsDir`/`Get-MiseExePath`/`Get-NpmPrefix` 精确常量（§7.1）；mise 子进程 MUST 带 MISE_* env，文件扫描不依赖 env（🟢 v0.2.15 GPT-P0-1） |
 | MUST/SHOULD/MAY | RFC2119：必须/应/可 |
