@@ -1,13 +1,21 @@
-# CLI 自动升级 —— 项目规格 SPEC v0.2.7
+# CLI 自动升级 —— 项目规格 SPEC v0.2.10
 
-> **版本**：SPEC-v0.2.7（2026-09-16）。
-> **变更摘要（v0.2.6 → v0.2.7）**：架构不动。据 GPT frozen-direction 评审（v0.2.6）复核后修订，朝冻结候选收敛——
-> **P0-1 采纳**：GitHub Releases API asset digest（`sha256:<64hex>`）作 opencode 完整性主路径 MUST（gh api 实测 `anomalyco/opencode` v1.18.31 全 37 asset 带 digest，验证通过；web 源确认 GitHub 2025-06-03 起 Releases 暴露 upload-time 计算、immutable 的 SHA256 digest [cite:472d3952-4]，旧 release digest 可能为 null [cite:472d3952-2]）；digest 缺失回退 checksum asset MUST；二者皆无→双 hash SHOULD。remote.json schema 加 `expectedSha256`（从 digest 剥 `sha256:` 前缀取 64hex），**保留 `checksumAssetUrl` 作 fallback 路径**（驳回 GPT"删除 checksumAssetUrl"——旧 release digest 可能为 null，fallback 仍需它；digest 比 checksum asset 更可信：digest 由 GitHub upload 时算且 immutable，checksum asset 是发布者上传、可连同 zip 一起被替换）。
-> **P0-2 部分采纳**：§14-1/6 已实测闭合（tag=v1.18.31、assetName=opencode-windows-x64.zip、37 asset 全有 digest、prerelease=false）；§14-5 N=10 定死；§14-2/3/4/7/8/9 真未知风险**不伪关闭**（驳回 GPT"全部关闭§14"为过度——反代可靠性/PID 沙箱陈锁判定/时钟回拨极端需实现期实测，伪声明 closed 反误导），改为"已知风险声明，验收口径已定"。
-> **P0-3 采纳**：verify 失败 MUST NOT 写新鲜 runId 的 verified.json（防 sync 误判新鲜度）；upgrade 非升级分支不写 upgrade.json（已写，验收强化为 MUST 断言）。
-> **P1-4 采纳**：marker→exitCode→file 副作用表（§8.x）。
-> **P1-5 采纳**：Canonical Path 代码块（§4，低成本保险），维持"插空是渲染误读"（spec 实际路径无空格，已验证）。
-> **Checklist A-N 采纳为独立交付物** `cli-autoupdate-acceptance-checklist.md`（§15 引用，不塞进 spec 主体，守 Plan/契约层定位）。
+> **版本**：SPEC-v0.2.10（2026-09-16）。
+> **变更摘要（v0.2.9 → v0.2.10）**：架构不动。据 CodeBuddy 独立审计（对 v0.2.9）逐条复核后修订，闭合"schema 总表 ↔ 示例 ↔ 正文"三方一致性缺口与 §7.3 分支完备性空洞——全部为文字级修订，不涉架构。逐条采纳/驳回见交付报告。
+> 🟡 **D1 §5.9「全部」行与示例不一致（P0-2 同族）采纳（§5.9/§5.5）**：§5.9 表「全部｜error｜是」但 sync/verified/current-run/pin/npm-fallback 示例均无 `error`；`name` 行称"全部"但 sync 示例无 `name`；`entries[].name` 未入表。修：`error` 行收窄为 local/remote/upgrade；sync 示例补 `name`；表补 `entries[].name`。
+> 🟡 **D2 upgrade.json.fromVersion null 语义未入类型表采纳（§5.9）**：§5.3/§8.1 均称 REPAIR `fromVersion` 可 null（opencode staging 空），但 §5.9 类型为 `string`。修：改 `string|null`。
+> 🔴 **D3 §7.3 条件7/8 覆盖空洞采纳（§7.3/§8）**：upgrade 在 verify 之前运行→跨轮首次调用"本轮新鲜凭证"恒不成立（条件7 死分支）；stale-but-matching 凭证（存在且 version 匹配但非本轮新鲜）落入 1–9 全不命中的空洞，无 else 兜底。修：条件7/8 改为互补（7=有本轮新鲜→SKIP，仅同轮 re-probe 可达；8=无本轮新鲜[缺失/过期/version≠local]→REFRESH），追加 else 兜底，补输入清单（verified.json+current-run.json），UPTODATE_SKIP 限定为同轮重复调用幂等。
+> 🟡 **D4 §7.2 REPAIR 残留未定义 `<ver>` 采纳（§7.2）**：模块表 upgrade 行 `mise install <tool>@<ver> --force` 与 §7.3 条件5 `@<remote.latest>` 不一致（P0-1 漏改点）。修：改 `@<remote.latest>`。
+> 🟡 **D5 §10.5 计数语义两处冲突采纳（§10.5/§8.1）**：§10.5 括注"未跑 sync 如 ALL_REMOTE_FAIL→归零"错（ALL_REMOTE_FAIL 实际直进 sync）；与 §8.1 fatal"不动"直接冲突。修：唯一规则——fatal 中断（sync 未完整执行）→不更新（保持旧值）；仅 sync 完整执行到末步才按 opencode 条目结果 +1/归零；移除错误括注。
+> 🟡 **D6 §5.4 三重约束②措辞不可机械化采纳（§5.4）**：`verified.sha256`（exe hash）与 `expectedSha256`（zip hash）数值必不同，字面"一致"无法实现。修：改写为 sync 可机械判定——`verified.sha256` 非空且 sync 复算 `sourceSha256 == verified.sha256`（下载完整性已由 upgrade §5.2 闭合）。
+> 🟡 **D7 opencode-npm-fallback.json 未纳入时间字段规则采纳（§5）**：该文件用 `lastUpdatedAt` 无 `runAt`，违反 §5"MUST 带 runAt"。修：§5 例外清单补该文件（用 lastUpdatedAt）。
+> 🟢 **D8 §8 RUNTIME_ERROR_FATAL 产出者不全采纳（§8/§8.1）**：§9 段B 列 FATAL，但 §8 表限定 archive/sync。upgrade/verify 写 state 文件时 schema 校验失败（§5.8）亦可产 FATAL。修：§8 表产出脚本改"任何段（骨架级：锁/schema/汇总）"。
+> 🟢 **D9 ALL_REMOTE_FAIL 产出者未钉死采纳（§8）**：probe-remote 每 CLI 独立，单脚本无法知"三 CLI 全失败"。修：明确由 agent/SOP 在三 CLI probe-remote 均失败后聚合判定（读三 remote.json 或三 recoverable 标记），非单 CLI 脚本产出。
+> 🟢 **D10 REMOTE_FAIL 落盘字段清单不全采纳（§5.2/§8.1）**：§5.9 列 `assetName/checksumAssetUrl/fallbackUsed` 必填，但 REMOTE_FAIL 落盘语义未声明其取值。修：补 `assetName=null/checksumAssetUrl=null/fallbackUsed=false`。
+> 🟢 **D11 §5.2 策略5 跨脚本表述易误读采纳（§5.2）**："解压后计算 SHA256 写入 verified.json.sha256"可被读作 upgrade 越界写 verified.json。修：拆为 upgrade 写 upgrade.json.sha256、verify 复算写 verified.json.sha256。
+> 🟢 **D12 §5.8 示例自相矛盾采纳（§5.8）**：`"0.2.10" vs "0.2.10"` 两侧同值，示例失意义。修：改跨版本 `"0.2.10" vs "0.2.10"`。
+> **驳回**：D13（观察项，非文档缺陷）——gh/mise 未在审计 shell PATH 属审计局限；"gh 定位方式"属 SOP/实现期细节，§5 已允许 env 注入，不入 spec 主体。
+> **上一版（v0.2.9）变更摘要**：🔴 P0-1 REPAIR target=remote.latest；🔴 P0-2 verified.json channel 示例；🟡 P1-1 prerelease-vs-REPAIR 列 §14-11；🟡 P1-2 N=10 计数文件；🟢 P1-3 ALL_REMOTE_FAIL 聚合口径。
 > **角色定位**：本文件是 **Plan / 契约**（治理路线图 Approved Plan 位）。契约层为硬约束；PowerShell 实现属 Executor 有界自治。
 > **关键词约定（RFC2119）**：**MUST / 必须** = 绝对硬约束；**SHOULD / 应** = 强烈推荐（可偏离须记录）；**MAY / 可** = 可选。契约层陈述默认为 MUST。
 
@@ -19,7 +27,7 @@
 
 **运行形态**：Cherry Studio 定时任务驱动、agent 编排、PowerShell 7 模块化的**个人维护流程**，维护对象是三个固定 CLI（claude/codex/opencode）。**不是**通用 CLI 自动更新软件产品——无 config.json、无 `cli update` 命令、仅 Windows、不面向外部发行/不提供贡献指南；不做 RSA 签名验证（完整性策略见 §5.2，威胁模型见 §5.10）。
 
-**关于 LICENSE（修正事实矛盾）**：仓库根含 `LICENSE`（AGPL-3.0），系 initial commit 随归档 legacy 脚本（`.old/`）带入，**适用于 `.old/` 下历史代码**。本项目主体（SPEC + SOP + `*-v0.2.7.ps1` 新脚本）不面向外部发行、无贡献指南、不发布包；AGPL-3.0 不改变本流程的"个人维护"性质。
+**关于 LICENSE（修正事实矛盾）**：仓库根含 `LICENSE`（AGPL-3.0），系 initial commit 随归档 legacy 脚本（`.old/`）带入，**适用于 `.old/` 下历史代码**。本项目主体（SPEC + SOP + `*-v0.2.10.ps1` 新脚本）不面向外部发行、无贡献指南、不发布包；AGPL-3.0 不改变本流程的"个人维护"性质。
 
 参照系（批判借鉴设计哲学，不照搬形态）：
 - `Software_Update_Monitor_Spec_v0.2.2`（monitor-only）——本项目是其 Executor 下游延伸。
@@ -28,7 +36,7 @@
 **交付物三层**：
 1. **SPEC**（本文件）——设计契约。
 2. **执行 SOP**（`cli-autoupdate-sop.md`）——给定时任务执行 agent 逐字读；agent 只读 SOP。**当前状态：待产出**（SPEC 评审通过后产出）。
-3. **脚本**（`*-v0.2.7.ps1`）——模块化实现。**当前状态：待产出**（评审通过后产出，穿插 re-probe）。
+3. **脚本**（`*-v0.2.10.ps1`）——模块化实现。**当前状态：待产出**（评审通过后产出，穿插 re-probe）。
 
 > 仓库当前仅含 SPEC 系列文档 + `.old/` 归档 legacy 脚本 + LICENSE；SOP 与新脚本尚未产出，属评审阶段正常状态，非交付物定义矛盾。
 
@@ -81,22 +89,23 @@ D:\AI\Programs\CLI\opencode\opencode.exe
 
 ```
 D:\AI\Workspace\automatic\CLI-autoupdate\
-├── SPEC-v0.2.7.md                    # 本文件（契约）
+├── SPEC-v0.2.10.md                   # 本文件（契约）
 ├── cli-autoupdate-sop.md             # 执行 SOP（给定时 agent，待产出）
-├── cli-common-v0.2.7.ps1             # 共享库
+├── cli-common-v0.2.10.ps1            # 共享库
 ├── probe-local-<cli>.ps1             # 每 CLI 一份（3 份）
 ├── probe-remote-<cli>.ps1            # 每 CLI 一份（3 份）
 ├── upgrade-<cli>.ps1                 # 每 CLI 一份（3 份）；behind 判定 + zip 安全解压
 ├── verify-<cli>.ps1                  # 每 CLI 一份（3 份）；装后功能测试 + sha256
-├── sync-v0.2.7.ps1                   # 共享单脚本；每 CLI copy 独立 try/catch
+├── sync-v0.2.10.ps1                  # 共享单脚本；每 CLI copy 独立 try/catch
 ├── archive-state.ps1                 # 每轮首步：争锁+归档+生成 runId
 ├── state\                            # 固定路径，最新覆盖
 │   ├── current-run.json              # runId + startAt
 │   ├── <cli>-local.json
 │   ├── <cli>-remote.json
 │   ├── <cli>-upgrade.json
-│   ├── <cli>-verified.json           # 含 runId（新鲜度主判据）
+│   ├── <cli>-verified.json           # 含 runId（新鲜度主判据）+ channel（§5.4）
 │   ├── sync.json
+│   ├── opencode-npm-fallback.json    # opencode npm 全局卸载计数（§10.5）
 │   ├── run.lock
 │   ├── fetch_run.log
 │   ├── <cli>.pin                     # 可选：锁定目标版本
@@ -123,9 +132,9 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 
 ## 5. 数据契约（state/*.json）
 
-**时间字段规则（回应 GPT 4.1）**：除 `current-run.json`（用 `startAt`，表示本轮起点）与 `*.pin`（用 `setAt`，表示 pin 设置时间）外，其余 state JSON（local/remote/upgrade/verified/sync）MUST 带 `runAt`（ISO UTC，表示该文件产出时间）。`runId`：`current-run.json`/`verified.json`/`sync.json` MUST 带；`local.json`/`remote.json`/`upgrade.json` SHOULD 带（关联本轮，防同分钟多轮混读）。
+**时间字段规则（回应 GPT 4.1）**：除 `current-run.json`（用 `startAt`，表示本轮起点）、`*.pin`（用 `setAt`，表示 pin 设置时间）与 `opencode-npm-fallback.json`（用 `lastUpdatedAt`，sync 末步更新时间，非逐轮 state 而是跨轮计数器，§10.5）外，其余 state JSON（local/remote/upgrade/verified/sync）MUST 带 `runAt`（ISO UTC，表示该文件产出时间）。`runId`：`current-run.json`/`verified.json`/`sync.json` MUST 带；`local.json`/`remote.json`/`upgrade.json` SHOULD 带（关联本轮，防同分钟多轮混读）。
 
-所有 JSON 顶层带 `specVersion`（`"0.2.7"`）、`name`。时间内部 UTC，展示 UTC+08:00。**完整字段级 schema 见 §5.9（与示例一一对应）**。
+所有 JSON 顶层带 `specVersion`（`"0.2.10"`）、`name`。时间内部 UTC，展示 UTC+08:00。**完整字段级 schema 见 §5.9（与示例一一对应）**。
 
 **更新源固定清单**：
 - claude/codex：mise registry（mise 自身校验包完整性）。
@@ -137,7 +146,7 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 
 ### 5.1 `<name>-local.json`（probe-local 产出）
 ```json
-{ "specVersion":"0.2.7", "name":"codex", "channel":"mise", "runAt":"...", "runId":"<SHOULD>",
+{ "specVersion":"0.2.10", "name":"codex", "channel":"mise", "runAt":"...", "runId":"<SHOULD>",
   "version":"0.154.0", "exePath":"...", "bytes":298169136, "mtime":"...",
   "sha256":"<mise SHOULD 计算；opencode 必填>",
   "healthy":true, "healthDetail":"ok", "error":null }
@@ -149,7 +158,7 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 
 ### 5.2 `<name>-remote.json`（probe-remote 产出）+ 下载完整性策略
 ```json
-{ "specVersion":"0.2.7", "name":"opencode", "channel":"github-binary", "runAt":"...", "runId":"<SHOULD>",
+{ "specVersion":"0.2.10", "name":"opencode", "channel":"github-binary", "runAt":"...", "runId":"<SHOULD>",
   "latest":"1.18.31", "sourceUrl":"https://gh.jasonzeng.dev/https://...",
   "directUrl":"https://github.com/anomalyco/opencode/releases/download/v1.18.31/opencode-windows-x64.zip",
   "assetName":"opencode-windows-x64.zip",
@@ -160,14 +169,14 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 - **mise 通道**：`mise ls-remote <tool> --json` 最高 stable。
 - **github-binary 通道**：`releases/latest` → tag_name（去 `v`）+ assets 筛 `windows-x64.zip` → 取 `asset.digest`（`sha256:<64hex>`）剥前缀写 `expectedSha256`；`sourceUrl`=加速地址、`directUrl`=直连地址、`assetDigest`=原始 digest、`checksumAssetUrl`=`*.sha256`/`checksums.txt`（digest 不可用时 fallback，存在则记录，null 则无）。
   - **回退**：`releases/latest` 失败 → `releases?per_page=10` 取最高 stable、prerelease=false；`fallbackUsed=true`。
-  - **REMOTE_FAIL 落盘语义**：失败时仍写 remote.json，但 `latest:null, sourceUrl:null, directUrl:null, error:<cause>`。
+  - **REMOTE_FAIL 落盘语义**：失败时仍写 remote.json，必填字段取值：`latest:null, sourceUrl:null, directUrl:null, assetName:null, assetDigest:null, expectedSha256:null, checksumAssetUrl:null, fallbackUsed:false, error:<cause>`（§5.9 必填字段全部落盘，null/默认值占位，保持 schema 一致）。
   - **GitHub 限流区分**：遇 403 + `x-ratelimit-remaining: 0` → `RATE_LIMITED|<cli>`（区别于普通 REMOTE_FAIL）。
   - **下载完整性策略（v0.2.7 调整：API digest 主路径，回应 GPT P0-1）**：
     1. 下载 zip 后 MUST 校验大小 > 1MB（防半下载/stub）。
     2. **GitHub Releases API asset digest 存在**（`.assets[].digest`，格式 `sha256:<64hex>`）→ MUST 以 digest 为完整性主路径：剥 `sha256:` 前缀取 64hex 写入 `expectedSha256`，下载 zip 后计算 SHA256 与 `expectedSha256` 比对；不匹配 → `DOWNLOAD_FAIL|<cli> digest-mismatch`。digest 由 GitHub 在 asset upload 时计算、immutable（2025-06-03 起 Releases 暴露 [cite:472d3952-4]），比发布者上传的 checksum asset 更可信（checksum asset 可连同 zip 一起被替换）。digest 主路径**无需额外下载 checksum 文件**（digest 已在 releases API 响应内），省一跳。
     3. **digest 不可用**（旧 release digest=null，或 API 未返回）→ checksum asset 存在则 MUST 下载 checksum 并校验 SHA256；不匹配 → `DOWNLOAD_FAIL|<cli> checksum-mismatch`。
     4. **digest 与 checksum asset 均不可用** → SHOULD 双 hash 比对（反代+直连两份独立下载，SHA256 一致才接受）；不一致 → `DOWNLOAD_FAIL|<cli> dual-hash-mismatch`。MAY 偏离（直连不通时仅用反代 + `integrityNote:single-source`），须在 sync.json.entries 记录。
-    5. 解压后对目标 exe MUST 计算 SHA256，写入 verified.json.sha256。
+    5. 解压后对目标 exe MUST 计算 SHA256：**upgrade 脚本计算并写入 `upgrade.json.sha256`**（staging exe hash）；**verify 脚本复算并写入 `verified.json.sha256`**（两者数值应一致，同源 exe）。upgrade MUST NOT 越界写 verified.json（§7.2 边界、P0-3）。
   - **API digest 解析规则（MUST）**：取 `releases/latest`（或回退 `releases?per_page=10`）响应 `.assets[]` 中按 `assetName` 精确匹配条目的 `digest` 字段；格式须为 `sha256:<64hex>`，剥 `sha256:` 前缀取 64hex 写入 `expectedSha256`；digest 为 null 或字段缺失 → 视为 digest 不可用，回退 checksum asset（策略 3）。已实测 `anomalyco/opencode` v1.18.31 全 37 asset 均带 digest（opencode-windows-x64.zip → sha256:0ecd7ffc7f26390ce7799e7bcd409e4f11c410144308a6a5b0fcdce63d871006）。
   - **checksum 文件解析规则（MUST，回应 GPT 4.5）**：
     1. 支持 sha256sum 两格式：`<hash>  <filename>`（双空格）与 `<hash> *<filename>`（` *`，binary 模式标记）。
@@ -180,29 +189,33 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
   - **关于"自维护受控 manifest"（驳回 GPT#1 方案1）**：不采用。与"自动跟随 latest"矛盾（opencode 发版后无法自动获知官方 sha256，需人工维护 manifest）；manifest 受信任性回归原问题；checksum MUST + 双 hash SHOULD 已检出反代投毒且不引入人工步骤。
   - **已知坑（asset 名已实测闭合，回应 GPT P0-2）**：asset 名实测=`opencode-windows-x64.zip`、tag=v1.18.31、prerelease=false、全 asset 带 digest（§14-1 已闭合）；tag 列表接口曾现异常拼接，probe 仍需防御性处理。
 
-### 5.3 `<name>-upgrade.json`（upgrade 产出，仅实际升级时写）
+### 5.3 `<name>-upgrade.json`（upgrade 产出，仅实际升级/重装时写）
 ```json
-{ "specVersion":"0.2.7", "name":"codex", "runAt":"...", "runId":"<SHOULD>",
+{ "specVersion":"0.2.10", "name":"codex", "runAt":"...", "runId":"<SHOULD>",
   "fromVersion":"0.152.0", "target":"0.154.0", "exitCode":0, "ok":true,
   "sha256":"<opencode必填，mise SHOULD>", "error":null }
 ```
-不升级分支不写不覆盖本文件。
+不升级分支不写不覆盖本文件。`target` 字段取值（🔴 v0.2.9，回应 anthropic P0-1）：ACTIONABLE 分支 `target=remote.latest`（升级目标）；REPAIR 分支 `target=remote.latest`（重装目标，§7.3 REPAIR target 规则）——两分支 target 来源一致。`fromVersion`：ACTIONABLE=`local.version`；REPAIR=`local.version`（可能 null，opencode staging 空时记 null）。verify `matchesTarget` 对比此 `target`（§5.4）。
 
 ### 5.4 `<name>-verified.json`（verify 产出；晋升凭证）
 ```json
-{ "specVersion":"0.2.7", "name":"codex", "runAt":"...", "runId":"<本轮uuid, MUST>",
+{ "specVersion":"0.2.10", "name":"codex", "channel":"mise", "runAt":"...", "runId":"<本轮uuid, MUST>",
   "version":"0.154.0", "exePath":"...", "bytes":298169136,
   "sha256":"<opencode必填，mise SHOULD>",
   "healthy":true, "matchesTarget":true }
 ```
-- **晋升三重约束**：① 新鲜度（`runId == current-run.runId` **或** `runAt ≥ current-run.startAt`）② 完整性（opencode sha256 非空且与下载校验值一致）③ pin 未冲突（§5.7）。
+- **晋升三重约束**：① 新鲜度（`runId == current-run.runId` **或** `runAt ≥ current-run.startAt`）② 完整性（opencode：`verified.sha256` 非空，且 sync 复算 `sourceSha256 == verified.sha256`——同一 staging exe 的 hash 一致，凭证链成立；zip 下载完整性已由 upgrade 阶段 §5.2 策略闭合，sync 不再校验 zip hash）③ pin 未冲突（§5.7）。
 - `sha256`：verify 阶段 SHOULD 计算（opencode 必填，mise SHOULD——数据源与 §5.5 `sourceSha256` 对齐）。
 - verify 即装后功能测试：跑 `exe --version` + 计算 sha256。
 - **失败不覆盖（P0-3，回应 GPT）**：verify 失败（`VERIFY_FAIL`）MUST NOT 写新鲜 runId 的 verified.json——防 sync 误判新鲜度而用失败轮凭证覆盖旧有效凭证；失败仅输出标记 + 写 `fetch_run.log`，旧 verified.json（若有）原封不动。同理 upgrade 非升级分支（`UPTODATE_SKIP`/`NO_REMOTE`/`LOCAL_AHEAD` 等）MUST NOT 写/覆盖 upgrade.json（§5.3 已声明，此处强化为 MUST 断言，供验收机械化）。
+- **`matchesTarget` 比较基准（🟡 v0.2.8，回应 anthropic）**：`matchesTarget` 表示 verify 时实测版本是否与本轮判定目标一致，比较基准**按 upgrade 决策分支**取定，不统一用某单一来源：
+  - `ACTIONABLE`/`REPAIR` 分支（写了 upgrade.json）：对比 `upgrade.json.target`；实测 `version == upgrade.json.target` → `true`，否则 → `false`（触发 `VERIFY_FAIL` version-mismatch）。
+  - `UPTODATE_REFRESH` 分支（不写 upgrade.json，P0-3）：本轮无升级目标字段可对比，基准取 `local.version`；UPTODATE 前提即 `local.version == remote.latest`，verify 实测 `version == local.version` → `true`，否则 → `false`（`remote.latest` 与 `local.version` 理论相等，实测不等则 verify 健康但版本漂移，判 `false`）。
+  - `matchesTarget==false` 在 verify 一律视 `VERIFY_FAIL`（version-mismatch），不得晋升；这把"升级后实测版本 ≠ 目标"和"刷新轮实测版本 ≠ 本地期望"统一拦在晋升闸外。
 
 ### 5.5 `sync.json`（sync 产出）+ 二进制证据链
 ```json
-{ "specVersion":"0.2.7", "runAt":"...", "runId":"<本轮uuid, MUST>",
+{ "specVersion":"0.2.10", "name":"sync", "runAt":"...", "runId":"<本轮uuid, MUST>",
   "summary":{ "probed":3, "upgraded":1, "synced":1, "failed":1 },
   "entries":[
     {"name":"codex","source":"...","target":"D:\\AI\\Programs\\CLI\\codex\\codex.exe",
@@ -218,13 +231,13 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 
 ### 5.6 `current-run.json`（archive-state 首步生成）
 ```json
-{ "specVersion":"0.2.7", "name":"<cli-autoupdate>", "runId":"<uuid>", "startAt":"<UTCISO>", "archivedTo":"archive\\<ts>" }
+{ "specVersion":"0.2.10", "name":"<cli-autoupdate>", "runId":"<uuid>", "startAt":"<UTCISO>", "archivedTo":"archive\\<ts>" }
 ```
 注：`name` 此处为任务名（非 CLI 名），`startAt` 替代 `runAt`（表本轮起点）。
 
 ### 5.7 `<cli>.pin`（可选，手动锁定目标版本）
 ```json
-{ "specVersion":"0.2.7", "name":"codex", "pinVersion":"0.152.0", "reason":"user manual rollback", "setAt":"..." }
+{ "specVersion":"0.2.10", "name":"codex", "pinVersion":"0.152.0", "reason":"user manual rollback", "setAt":"..." }
 ```
 注：`setAt` 替代 `runAt`（表 pin 设置时间）。
 **pin 语义**：
@@ -237,14 +250,23 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 ### 5.8 校验与原子写入（fail-closed）
 每状态文件落盘走「写 `*.tmp` → 回读校验关键字段 → `Move-Item` 原子替换」。同卷原子；跨卷先 Copy 到目标卷临时文件再同卷 Move。校验失败 → `RUNTIME_ERROR_FATAL|schema`、释放锁、终止整轮。
 
+**specVersion 不匹配处理（🟡 v0.2.8，回应 anthropic——使 checklist A 节断言有契约依据）**：
+- 读入 state 文件时若 `specVersion != 当前实现版本`（如读到 `"0.2.9"` 而本轮跑 `"0.2.10"`），**视为陈旧文件**：MUST NOT 作本轮决策依据消费（即本轮 probe/upgrade/verify/sync 的判定**不以旧 specVersion 文件内容为准**）。
+- **行为分级**：
+  - probe-local/probe-remote 类：本轮重新探测会自然覆盖旧文件（§5.1/§5.2 产出路径），不 fatal 终止——终止反破坏可用性（本任务目标是"让 CLI 可用"，旧 specVersion 不代表数据损坏，仅版本漂移）。
+  - verified.json：旧 specVersion 的 verified.json **不作本轮晋升凭证**——sync 晋升三重约束①新鲜度（`runId==current-run.runId` 或 `runAt≥startAt`）天然拦住跨轮旧凭证（旧轮 runId ≠ 本轮、旧 runAt < startAt），specVersion 检查为第二道保险（防新鲜度兜底判据 `runAt≥startAt` 在时钟回拨下放过同版本旧凭证）。
+  - upgrade.json：旧 specVersion 的 upgrade.json `target` 字段不作为 verify `matchesTarget` 基准（§5.4）——本轮若产生新 upgrade.json 则用新 `target`，若无（UPTODATE_REFRESH）用 `local.version` 兜底。
+- **非 fatal、非 PARSE_ERROR**：与 schema 字段缺失/类型错的 `RUNTIME_ERROR_FATAL|schema`（文件损坏）区分——specVersion 不匹配是版本演进正常现象，文件本身完整可解析，仅"内容不再可信"。本轮覆盖写回当前 specVersion 即完成迁移，无需人工干预。
+- checklist A 节"旧 specVersion 触发 fail-closed"断言据此修正为：**旧 specVersion → 不作决策依据消费 + 本轮覆盖（非 fail-closed 终止）**；fail-closed 仅针对 schema 损坏（字段缺失/类型错），不针对 specVersion 漂移。
+
 ### 5.9 字段级 schema 总表（与示例一一对应）
 
 | 文件 | 字段 | 类型 | 必填 | 枚举/说明 |
 |---|---|---|---|---|
-| 全部 | specVersion | string | 是 | `"0.2.7"` |
-| 全部 | name | string | 是 | CLI 名或任务名（current-run） |
-| 全部 | error | string\|null | 是 | null=无错 |
-| local/remote/upgrade/verified/sync | runAt | ISO | 是 | current-run 用 startAt，pin 用 setAt |
+| 全部 | specVersion | string | 是 | `"0.2.10"` |
+| 全部（除 sync 外） | name | string | 是 | CLI 名或任务名（current-run）；sync.json 顶层用 `name:"sync"` 标识文件本身 |
+| local/remote/upgrade | error | string\|null | 是 | null=无错；verified/sync/current-run/pin/npm-fallback 不带 error |
+| local/remote/upgrade/verified/sync | runAt | ISO | 是 | current-run 用 startAt，pin 用 setAt，npm-fallback 用 lastUpdatedAt |
 | local/remote/upgrade | runId | string(uuid) | SHOULD | 关联本轮 |
 | verified/sync/current-run | runId | string(uuid) | 是 | 新鲜度主判据/本轮身份 |
 | local.json | channel | string | 是 | mise/github-binary |
@@ -264,7 +286,7 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 | | expectedSha256 | string\|null | 条件 | github-binary；64hex（剥前缀），digest 不可用时=null |
 | | checksumAssetUrl | string\|null | 是 | null=无 checksum（digest 不可用时 fallback） |
 | | fallbackUsed | bool | 是 | |
-| upgrade.json | fromVersion | string | 是 | |
+| upgrade.json | fromVersion | string\|null | 是 | REPAIR 时可能 null（opencode staging 空，§5.3） |
 | | target | string | 是 | |
 | | exitCode | int | 是 | 0=成功 |
 | | ok | bool | 是 | |
@@ -277,6 +299,7 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 | | matchesTarget | bool | 是 | |
 | | healthy | bool | 是 | |
 | sync.json | summary.probed/upgraded/synced/failed | int | 是 | |
+| | entries[].name | string | 是 | 该条目对应 CLI 名 |
 | | entries[].action | string | 是 | copy/skip/target-locked |
 | | entries[].source/target/targetVersion | string | 条件 | copy 必填 |
 | | entries[].bytes | int | 条件 | copy 必填 |
@@ -289,6 +312,9 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 | pin | pinVersion | string | 是 | |
 | | reason | string | 否 | |
 | | setAt | ISO | 否 | 替代 runAt |
+| opencode-npm-fallback.json | consecutiveSyncSuccess | int | 是 | 0-10，连续 sync 成功轮数（§10.5） |
+| | lastUpdatedAt | ISO | 是 | sync 末步更新时间 |
+| | uninstalled | bool | 是 | true=已执行 npm uninstall（幂等防重复） |
 
 ### 5.10 威胁模型声明（回应 GPT 4.4）
 
@@ -324,7 +350,7 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 
 ## 7. 模块清单
 
-### 7.1 共享库 `cli-common-v0.2.7.ps1`
+### 7.1 共享库 `cli-common-v0.2.10.ps1`
 `Invoke-Proc`（`.cmd/.bat` 经 `cmd.exe /c`，异步排空 stdout/stderr 再 WaitForExit+Kill；超时 mise ls-remote 60s / upgrade 600s / exe --version 30s）、`Compare-SemVer`（去 `v`，比较 Major.Minor.Patch，prerelease 低于 stable，不支持 build 元数据；解析失败返回 incomparable）、`Get-CherryMiseEnv`/`Get-MiseExePath`/`Get-MiseInstallsDir`/`Get-NpmPrefix`、GitHub 加速/直连 URL 构造器 + `gh auth token` 读取、**zip 安全解压**（§7.2 ZipSlip）、SHA256 计算、checksum 文件解析（§5.2 MUST 规则）、健康检查分型、运行锁原语、状态文件原子写入助手、runId 生成与读取、凭证新鲜度双判据（runId 主 / runAt 兜底）、pin 读取。
 
 ### 7.2 每 CLI 一套（4 拆模块）
@@ -333,9 +359,9 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 |---|---|---|
 | `probe-local-<cli>.ps1` | 扫 `mise\installs\<tool>\` 最高 semver → 全字段 + runId(SHOULD) + sha256 SHOULD | 扫 `staging\opencode\<ver>\` → 全字段 + runId(SHOULD) + sha256 |
 | `probe-remote-<cli>.ps1` | `mise ls-remote --json`；失败写 `latest:null,error` | `releases/latest` + 失败回退；记录 sourceUrl/directUrl/assetDigest/expectedSha256/checksumAssetUrl；认证 token 提额；403 限流 → `RATE_LIMITED|` |
-| `upgrade-<cli>.ps1` | 读 local+remote → 判 behind（§7.3 if-elif）；ACTIONABLE=`mise upgrade <tool>@latest`，REPAIR=`mise install <tool>@<ver> --force` | 读 remote → 下载（§5.2 完整性策略：digest 主路径 + checksum 解析 fallback）→ **ZipSlip 安全解压** → staging exe 计算 sha256 |
+| `upgrade-<cli>.ps1` | 读 local+remote → 判 behind（§7.3 if-elif）；ACTIONABLE=`mise upgrade <tool>@latest`，REPAIR=`mise install <tool>@<remote.latest> --force`（🔴 v0.2.10 D4：`<ver>` 收敛为 `<remote.latest>`，与 §7.3 条件5/§5.3 对齐） | 读 remote → 下载（§5.2 完整性策略：digest 主路径 + checksum 解析 fallback）→ **ZipSlip 安全解压** → staging exe 计算 sha256 |
 | `verify-<cli>.ps1` | 重扫 mise installs → 全字段 + runId(MUST) + sha256 SHOULD | 跑 staging exe `--version` → 全字段 + runId(MUST) + sha256 |
-| `sync-v0.2.7.ps1`（共享） | 遍历三 CLI verified.json → 三重约束判定 → copy + 字节/sha256 复核 + `.previous` 备份 + 证据链 + summary 汇总 | 同左 |
+| `sync-v0.2.10.ps1`（共享） | 遍历三 CLI verified.json → 三重约束判定 → copy + 字节/sha256 复核 + `.previous` 备份 + 证据链 + summary 汇总 + opencode npm fallback 计数更新（§10.5） | 同左 |
 
 **ZipSlip 解压安全约束（硬约束）**：opencode zip 解压 MUST 满足：① 目标限定 `staging\opencode\<ver>\` 子树；② 拒绝含 `..\` / 绝对路径 / symlink / junction 的 entry；③ 发现非法 entry → 中止解压、清理已解压文件、`DOWNLOAD_FAIL|<cli> zip-slip`、不写 verified.json；④ 解压后校验目标 exe 存在且 > 1MB。
 
@@ -345,26 +371,43 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 - 实现 MUST 用 `ForEach ($cli in $clis) { try { <copy> } catch { <recoverable 标记>; continue } }` 粒度，禁止循环外统一 catch。
 
 ### 7.3 behind 判定与版本规则（upgrade 内部）
-读 `local.json` + `remote.json` → **按下列顺序 if-elif 评估，命中即止（自上而下优先级）**：
+读 `local.json` + `remote.json`（条件7/8 另需读 `verified.json` + `current-run.json` 判凭证新鲜度，🔴 v0.2.10 D3 补全输入清单）→ **按下列顺序 if-elif 评估，命中即止（自上而下优先级）**：
 
 | # | 条件 | 标记 | 动作 |
 |---|---|---|---|
 | 1 | remote.latest == null | `NO_REMOTE\|<cli> <cause>` | 读不到 target，不执行，跳过 verify |
-| 2 | 版本不可解析（Compare-SemVer incomparable） | `VERSION_FORMAT_ERROR\|<cli> <raw>` | 不执行，跳过 verify |
+| 2 | local.version 与 remote.latest 均非 null，但 Compare-SemVer 返回 incomparable（格式坏，非空） | `VERSION_FORMAT_ERROR\|<cli> <raw>` | 不执行，跳过 verify |
 | 3 | target 为 prerelease | `TARGET_PRERELEASE\|<cli> <v>` | stable-only 拒绝，跳过 verify |
 | 4 | local.healthy == false 且 healthDetail == probe-error | `PROBE_ERROR\|<cli> <reason>` | 不重装，跳过 verify |
-| 5 | local.healthy == false 且 healthDetail == broken | `REPAIR\|<cli> <reason>` | 强制重装（mise: `mise install <tool>@<ver> --force`；opencode: 重下载解压） |
+| 5 | local.healthy == false 且 healthDetail == broken | `REPAIR\|<cli> <reason>` | 强制重装（mise: `mise install <tool>@<remote.latest> --force`；opencode: 下载 `remote.latest` 解压到 staging）。**REPAIR target = remote.latest**（🔴 v0.2.9，回应 anthropic P0-1） |
 | 6 | local < remote 且 target stable | `ACTIONABLE\|<cli> <from>-><to>` | 执行升级 → 进 verify |
-| 7 | local == remote 且 有本轮新鲜凭证 | `UPTODATE_SKIP\|<cli> <v>` | 不执行、不写 upgrade.json、跳过 verify（真幂等） |
-| 8 | local == remote 但 凭证缺失或 verified.version ≠ local.version | `UPTODATE_REFRESH\|<cli> <v>` | 不执行升级，仍运行 verify（刷新凭证） |
+| 7 | local == remote 且 **有本轮新鲜凭证** | `UPTODATE_SKIP\|<cli> <v>` | 不执行、不写 upgrade.json、跳过 verify |
+| 8 | local == remote 且 **无本轮新鲜凭证**（凭证缺失 / 不新鲜 / `verified.version ≠ local.version`） | `UPTODATE_REFRESH\|<cli> <v>` | 不执行升级，仍运行 verify（刷新凭证） |
 | 9 | local > remote（双方可解析） | `LOCAL_AHEAD\|<cli> <local> > <remote>` | 不执行，跳过 verify |
+| else | 1–9 均未命中（防御性，正常不可达） | `RUNTIME_ERROR\|<cli> branch-undefined` | recoverable 标记，跳过 verify；写 fetch_run.log warning |
 
 **顺序说明**：1-3（远端/格式/策略前提）优先于本地健康检查（4-5），本地健康检查优先于版本比较（6-9）。同一条件多分支同时满足，按表号小者优先。
+
+**条件7/8 互补与可达性（🔴 v0.2.10 D3，回应 CodeBuddy——闭合"无分支命中"空洞）**：
+- **时序前提**：§9 状态机每轮 `upgrade → verify` 顺序执行一次。upgrade 执行时点，**本轮 verify 尚未运行**——故 upgrade 读到的 `verified.json` 必然来自上一轮（runId/runAt 均为上轮），按 §5.4 新鲜度双判据（`runId==current-run.runId` 或 `runAt≥startAt`）**跨轮首次调用恒不新鲜**。
+- **由此原条件7"有本轮新鲜凭证"在跨轮首次调用中恒不成立（死分支）**；原条件8"凭证缺失或 `verified.version≠local.version`"在"上一轮凭证存在且 `verified.version==local.version`"（连续两轮 UPTODATE 常态）时亦不成立——1–9 全不命中，无 else 兜底，行为未定义（违反 §1 原则3 固定状态机 + §15 九分支全覆盖验收前提）。
+- **修订（条件7/8 改为互补）**：条件7 = `local==remote` 且**有本轮新鲜凭证**→`UPTODATE_SKIP`；条件8 = `local==remote` 且**无本轮新鲜凭证**（缺失 / 不新鲜 / `verified.version≠local.version` 任一）→`UPTODATE_REFRESH`。二者在 `local==remote` 下完备互补，空洞消除。
+- **`UPTODATE_SKIP` 的可达范围**：仅**同轮内重复调用 upgrade**（如 §13 穿插 re-probe：本轮 verify 已产出新鲜凭证后再次进入 upgrade）可达——此时本轮新鲜凭证存在，SKIP 跳过冗余 verify，为真幂等。**跨轮稳态 UPTODATE 走 `UPTODATE_REFRESH`**（每轮刷新凭证，跑 `--version` + sha256；成本可接受，与 §13-2 首轮 seed 路径一致——seed 亦依赖 refresh 产凭证）。
+- **else 兜底**：追加 `RUNTIME_ERROR|<cli> branch-undefined`（recoverable），保证九分支穷尽，正常流程不可达。
+
+**条件2 的 null 处理（🔴 v0.2.8 消歧，回应 anthropic 阻塞项）**：条件2（版本不可解析）仅在 `local.version` 与 `remote.latest` **均非 null** 时判定。`local.version==null`（opencode staging 空 / `healthDetail=broken` 导致，§5.1）**不计入"不可解析"**——null 是"无版本"非"格式坏"，Compare-SemVer 对 null 输入 MUST NOT 返回 incomparable 拦截，upgrade 须先判 null 跳过条件2，直接下沉至条件4/5（healthy 检查）。否则：staging 空→`version=null`→条件2 命中→`VERSION_FORMAT_ERROR`→永远走不到条件5 `REPAIR`→**首次 seed 卡死**（§13 迁移、§3 实机现状依赖此路径）。Compare-SemVer 实现须：null 输入由调用方（upgrade）前置判空，函数本身仅对非 null 但不可解析的字符串返回 incomparable。
+
+**REPAIR 的 target 取值（🔴 v0.2.9，回应 anthropic P0-1）**：条件5 REPAIR 的重装目标**统一为 `remote.latest`**，两通道对齐——mise `mise install <tool>@<remote.latest> --force`，opencode 下载 `remote.latest` 解压。语义为"既然要重装，顺便修到当前 stable 最新"。此选择覆盖以下边界：
+- **broken + local<remote**（ACTIONABLE 同时成立）：REPAIR 优先于 ACTIONABLE（条件5 先于条件6），target=remote.latest 一次性"修+升"，ACTIONABLE 被吸收，不留到下轮。
+- **broken + opencode staging 空**：staging 无本地版本可"修回原版本"，必用 remote.latest 下载——opencode 通道的 REPAIR 隐含 target=remote.latest，mise 通道显式对齐。
+- **broken + local>remote**（LOCAL_AHEAD 同时成立）：REPAIR 优先（条件5 先于条件9），target=remote.latest 意味着重装到比 broken 本地更旧的 stable——可接受（broken 的较新版本无价值，修到当前最新 stable；healthy+ahead 才走 LOCAL_AHEAD 保留，§7.3 条件9）。
+- REPAIR 写 `upgrade.json.target = remote.latest`（§5.3），verify `matchesTarget` 对比该 target（§5.4）——基准闭环。
+- **prerelease 边界**：若 `remote.latest` 本身为 prerelease，TARGET_PRERELEASE（条件3）先于 REPAIR 命中，不执行重装——此为 stable-only 策略后果，见 §14-11。
 
 **策略说明**：stable-only 跟随 latest，不强制更新、不自动降级（降级用户手动 `mise use` 或建 pin）。`local > remote` 显式报告不静默跳过。agent 无差别调用。
 
 ### 7.4 版本号
-共享库与 sync 文件名含 `-v0.2.7`；probe/upgrade/verify 每 CLI 一份，首行 `$ScriptVersion='0.2.7'` + `# SPEC: v0.2.7`。
+共享库与 sync 文件名含 `-v0.2.10`；probe/upgrade/verify 每 CLI 一份，首行 `$ScriptVersion='0.2.10'` + `# SPEC: v0.2.10`。
 
 ---
 
@@ -379,16 +422,16 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 | `LOCKED\|` | 任何段 | fatal | blocked，本轮终止 |
 | `STATE_MISSING\|` | archive/probe-local | fatal | blocked，本轮终止 |
 | `PARSE_ERROR\|` | 任何段 | fatal | failed，不写回原文件，本轮终止 |
-| `RUNTIME_ERROR_FATAL\|<cause>` | archive/sync（骨架级） | fatal | 整轮终止（含 schema 校验/汇总异常） |
+| `RUNTIME_ERROR_FATAL\|<cause>` | 任何段（骨架级：锁争取/续取失败、state 文件 schema 校验失败、汇总异常） | fatal | 整轮终止。🔴 v0.2.10 D8：upgrade/verify 写 state 文件时回读校验失败（§5.8）亦产 FATAL，非仅 archive/sync |
 | `RUNTIME_ERROR\|<cli> <cause>` | probe/upgrade/verify（CLI 级） | recoverable | 该 cli 失败，继续下一个 |
 | `LOCAL_OK\|<cli> ver=<v> healthy=<bool> detail=<d>` | probe-local | 成功 | 阶段成功 |
 | `LOCAL_EMPTY\|<cli>` | probe-local | 成功 | staging 空 → 进 upgrade |
 | `REMOTE_OK\|<cli> latest=<v> fallback=<bool>` | probe-remote | 成功 | 阶段成功 |
 | `REMOTE_FAIL\|<cli> <cause>` | probe-remote | recoverable | 该 cli 远端失败 → upgrade 读 latest:null → NO_REMOTE |
 | `RATE_LIMITED\|<cli>` | probe-remote | recoverable | 403 + ratelimit-remaining:0 |
-| `ALL_REMOTE_FAIL\|` | probe-remote 末 | 整轮级 | 三 CLI 全失败 → 跳 upgrade/verify，直进 sync |
-| `UPTODATE_SKIP\|<cli> <v>` | upgrade | 成功 | 有本轮凭证，跳 verify |
-| `UPTODATE_REFRESH\|<cli> <v>` | upgrade | 成功 | 凭证缺失/过期，进 verify 刷新 |
+| `ALL_REMOTE_FAIL\|` | agent/SOP 聚合判定（🔴 v0.2.10 D9：非单 CLI 脚本产出） | 整轮级 | 三 CLI 全失败 → 跳 upgrade/verify，直进 sync。**产出者钉死**：probe-remote 为每 CLI 独立脚本，单脚本无法知晓"三 CLI 全失败"；由 agent/SOP 在三 CLI probe-remote 均失败后聚合判定（读三个 `<cli>-remote.json` 的 latest/error 或三个 recoverable 标记 RATE_LIMITED/REMOTE_FAIL），命中即路由直进 sync。**聚合口径（🟢 v0.2.9）**：`RATE_LIMITED` 与 `REMOTE_FAIL` **均计入"remote fail"**——三 CLI 中无论失败标记是 RATE_LIMITED 还是 REMOTE_FAIL，只要三者均失败即触发 ALL_REMOTE_FAIL |
+| `UPTODATE_SKIP\|<cli> <v>` | upgrade | 成功 | 有本轮新鲜凭证（仅同轮 re-probe 可达，§7.3 D3），跳 verify |
+| `UPTODATE_REFRESH\|<cli> <v>` | upgrade | 成功 | 无本轮新鲜凭证（缺失/过期/`verified.version≠local.version`），进 verify 刷新 |
 | `ACTIONABLE\|<cli> <from>-><to>` | upgrade | 成功 | 有升级动作 |
 | `REPAIR\|<cli> <reason>` | upgrade | 成功 | broken 触发重装 |
 | `PROBE_ERROR\|<cli> <reason>` | upgrade | recoverable | probe-error 不重装，跳 verify |
@@ -429,18 +472,19 @@ D:\AI\Workspace\automatic\CLI-autoupdate\
 | probe-local | `LOCAL_EMPTY\|<cli>` | 11 | 写 `<cli>-local.json`（version=null, healthy=false） |
 | probe-local | `RUNTIME_ERROR\|<cli>` | 3 | **不覆盖**旧 `<cli>-local.json`（P0-3 失败不覆盖） |
 | probe-remote | `REMOTE_OK\|<cli>` | 11 | 覆盖 `<cli>-remote.json`（含 assetDigest/expectedSha256/checksumAssetUrl） |
-| probe-remote | `REMOTE_FAIL\|<cli>`/`RATE_LIMITED\|<cli>` | 3 | 写 `<cli>-remote.json`（latest=null, error=<cause>，digest/expectedSha256=null） |
+| probe-remote | `REMOTE_FAIL\|<cli>`/`RATE_LIMITED\|<cli>` | 3 | 写 `<cli>-remote.json`（🔴 v0.2.10 D10：必填字段全落盘——latest/sourceUrl/directUrl/assetName/assetDigest/expectedSha256/checksumAssetUrl=null, fallbackUsed=false, error=<cause>） |
 | probe-remote | `ALL_REMOTE_FAIL\|` | 2 | 末步汇总标记，不额外写文件 |
-| upgrade | `ACTIONABLE\|`/`REPAIR\|` → `UPGRADE_OK\|` | 11 | 覆盖 `<cli>-upgrade.json`（fromVersion/target/sha256） |
+| upgrade | `ACTIONABLE\|`/`REPAIR\|` → `UPGRADE_OK\|` | 11 | 覆盖 `<cli>-upgrade.json`（fromVersion/target/sha256）。**target=remote.latest**（ACTIONABLE 升级目标 / REPAIR 重装目标，🔴 v0.2.9 P0-1）；REPAIR fromVersion 可能 null（opencode staging 空） |
 | upgrade | `UPTODATE_SKIP\|`/`NO_REMOTE\|`/`LOCAL_AHEAD\|`/`PROBE_ERROR\|`/`TARGET_PRERELEASE\|`/`VERSION_FORMAT_ERROR\|` | 0 | **MUST NOT 写/覆盖** `<cli>-upgrade.json`（P0-3） |
 | upgrade | `DOWNLOAD_FAIL\|`/`UPGRADE_FAIL\|`/`EXE_LOCKED\|`/`DISK_FULL\|` | 3 | **MUST NOT 写** upgrade.json（失败不覆盖） |
 | verify | `VERIFY_OK\|<cli>` | 11 | 覆盖 `<cli>-verified.json`（新鲜 runId + sha256） |
 | verify | `VERIFY_FAIL\|<cli>` | 3 | **MUST NOT 写新鲜 runId 的** `<cli>-verified.json`（P0-3，旧凭证不动） |
 | verify | `RUNTIME_ERROR\|<cli>` | 3 | 不覆盖旧 verified.json |
-| sync | `SYNC_COPY\|`/`SYNC_SKIP\|`（逐 CLI） | 0/11 | 覆盖 `<name>.exe` + `.previous` + 写 `sync.json.entries[]`；sync.json 末步覆盖 |
+| probe-local/probe-remote/upgrade/verify | `RUNTIME_ERROR_FATAL\|schema` | 3 | 🔴 v0.2.10 D8：state 文件原子写入回读校验失败（§5.8）→ 释放锁、不写回原文件、整轮终止（非 CLI 级 recoverable） |
+| sync | `SYNC_COPY\|`/`SYNC_SKIP\|`（逐 CLI） | 0/11 | 覆盖 `<name>.exe` + `.previous` + 写 `sync.json.entries[]`；sync.json 末步覆盖；末步更新 `opencode-npm-fallback.json` 计数（§10.5） |
 | sync | `SYNC_TARGET_LOCKED\|<cli>` | 0 | 该 CLI entry=skip，sync.json 仍写 entry（reason） |
-| sync | `RUN_STATUS\|success\|<summary>` | 0 | 覆盖 `sync.json`（summary + entries） |
-| sync | `RUN_STATUS\|failed\|<cause>` | 2 | 仅 fatal 触发；sync.json 若已部分写则保留 + 标记失败 |
+| sync | `RUN_STATUS\|success\|<summary>` | 0 | 覆盖 `sync.json`（summary + entries）+ 覆盖 `opencode-npm-fallback.json`（计数/uninstalled 幂等） |
+| sync | `RUN_STATUS\|failed\|<cause>` | 2 | 仅 fatal 触发；sync.json 若已部分写则保留 + 标记失败；opencode-npm-fallback.json 计数按已跑的 opencode 条目结果更新（fatal 前已处理则更新，否则不动） |
 
 > exitCode 约定：`0`=无事可做/已满足/整轮成功；`10`=dry-run 有动作；`11`=成功且产物已写；`2`=判定失败/整轮失败；`3`=执行失败或复核不过（CLI 级 recoverable）。**agent 以 stdout 标记为准**，exitCode 仅供人工/日志辅助判断。
 
@@ -535,6 +579,19 @@ staging 保留最近 2 版；升级失败 → 不写新鲜凭证 → sync 不动
 ### 10.5 opencode npm 全局
 暂保留作 fallback，**连续 10 轮 sync 成功后卸载**（N=10 定死，回应 GPT P0-2；10 轮覆盖约 10 天定时窗口，足以暴露稳定期问题）。
 
+**计数机制（🟡 v0.2.9，回应 anthropic P1-2——原 §10.5 仅定阈值未定义计数，名实不符）**：采用方案(a)轻量持久化计数文件 `state/opencode-npm-fallback.json`：
+```json
+{ "specVersion":"0.2.10", "name":"opencode", "consecutiveSyncSuccess":<int>,
+  "lastUpdatedAt":"<ISO>", "uninstalled":false }
+```
+- **更新时机**：sync 末步（sync-v0.2.10.ps1 汇总后）更新。
+- **成功计数**：本轮 opencode 条目 sync 成功（`SYNC_COPY` 或 `already-current` 幂等 skip）→ `consecutiveSyncSuccess += 1`。
+- **失败归零**：本轮 opencode sync 失败（copy 失败/复核不过/目标锁定/三重约束不满足且非 already-current 的 `SYNC_SKIP`）→ `consecutiveSyncSuccess = 0`。**注**：`ALL_REMOTE_FAIL` 不属"未跑 sync"——§8/§9 明确其直进 sync，opencode 条目走 `SYNC_SKIP`（无新鲜凭证，非 already-current）即归零，已被本条覆盖。
+- **🔴 v0.2.10 D5 唯一规则（闭合与 §8.1 冲突）**：计数更新**仅当 sync 完整执行到末步**（opencode 条目已处理）才发生——按上述 +1/归零。**fatal 中断（sync 未完整执行：`LOCKED|`/`STATE_MISSING|`/`PARSE_ERROR|`/`RUNTIME_ERROR_FATAL|` 在 sync 末步前触发）→ 不更新计数**（保持旧值，与 §8.1 `RUN_STATUS|failed` 行"fatal 前已处理则更新，否则不动"一致）。fatal 不归零——避免一次骨架级中断清掉累计进度。
+- **卸载触发**：`consecutiveSyncSuccess >= 10` 且 `uninstalled==false` → 执行 `npm uninstall -g opencode`，置 `uninstalled=true`（幂等：已达 10 且 uninstalled=true 后续不再重复卸载）。
+- **archive 不足 10 轮不阻断**：计数靠本文件持久化，不依赖 archive 回溯；首轮从 0 起累计。
+- **归档**：本文件纳入 archive-state 归档范围（state/*.json）。
+
 ---
 
 ## 11. 可追溯
@@ -548,7 +605,7 @@ staging 保留最近 2 版；升级失败 → 不写新鲜凭证 → sync 不动
 
 ## 12. 与参照系差异（自检）
 
-| 维度 | Software_Update_Monitor v0.2.2 | Release-Monitor | 本项目 v0.2.7 |
+| 维度 | Software_Update_Monitor v0.2.2 | Release-Monitor | 本项目 v0.2.10 |
 |---|---|---|---|
 | 范围 | monitor-only | monitor-only | monitor+download+install+switch+rollback |
 | 模块粒度 | — | 合并 monitor.ps1 | 4 拆模块 |
@@ -560,7 +617,7 @@ staging 保留最近 2 版；升级失败 → 不写新鲜凭证 → sync 不动
 
 ---
 
-## 13. v0.2.7 迁移项（首次执行）+ checklist
+## 13. v0.2.10 迁移项（首次执行）+ checklist
 
 1. 新建 `D:\AI\Programs\CLI\{claude,codex,opencode}\`（claude 已手动补全；新机重装仍需）。
 2. **首轮 seed 路径**：由 `UPTODATE_REFRESH` 天然完成——首轮即使所有 CLI UPTODATE，凭证缺失触发 verify 产出 seed 凭证 → sync copy。D 盘已有正确版本则 `already-current` 幂等跳过。
@@ -576,14 +633,14 @@ staging 保留最近 2 版；升级失败 → 不写新鲜凭证 → sync 不动
    - 全部勾选后才执行清空。
 5. opencode 安装源切换：npm → GitHub binary staging；首次 probe-local 扫 staging（空 → LOCAL_EMPTY → 触发首次 upgrade）。
 6. mise 配置加 `upgrade.auto_prune=false`。
-7. 现有散脚本（`.old/`）→ 按 §7 模块清单拆分重命名（-v0.2.7 / $ScriptVersion）。`.old/` legacy 脚本受仓库 AGPL-3.0 LICENSE 约束，新脚本沿用同 LICENSE（仓库既有）。
+7. 现有散脚本（`.old/`）→ 按 §7 模块清单拆分重命名（-v0.2.10 / $ScriptVersion）。`.old/` legacy 脚本受仓库 AGPL-3.0 LICENSE 约束，新脚本沿用同 LICENSE（仓库既有）。
 8. 产出 `cli-autoupdate-sop.md`（含 §6 锁恢复手册 + §9 错误场景示例）。
 
 **配置/数据迁移**：无 config.json、无 SQLite/DB、无用户数据。状态 schema 跨版本靠 `specVersion` 标识。
 
 ---
 
-## 14. 待确认 / 已知风险（v0.2.7 闭合状态，回应 GPT P0-2）
+## 14. 待确认 / 已知风险（v0.2.10 闭合状态，回应 GPT P0-2 + anthropic 🟢 + anthropic P1-1 + CodeBuddy D1–D12）
 
 > **驳回 GPT"全部关闭§14"（过度）**：真未知风险（反代可靠性/PID 沙箱陈锁判定/极端时钟回拨）需实现期实测，伪声明"closed"反误导验收。此处区分**已闭合**（实测/规则已定）与**已知风险声明**（验收口径已定、待实现期实测兜底）。
 
@@ -599,6 +656,8 @@ staging 保留最近 2 版；升级失败 → 不写新鲜凭证 → sync 不动
 2. **反代可靠性 + 双 hash 成本**：反代不可用回退直连；digest 主路径下双 hash 仅在 digest+checksum 均不可用时触发（成本上限收窄）。验收口径：反代失效→直连重试一次→仍失败 `DOWNLOAD_FAIL|`。反代长期可靠性待实现期实测。
 3. **runId 锁模型实现细节**：续锁独占/消失统一 fail-closed（§6 已闭合到 SOP + 恢复手册）；陈锁接管 PID 死亡判定在 Cherry 沙箱下可靠性待实测。验收口径：不确定→保守 `LOCKED|` 不抢锁。
 8. **时钟回拨**：凭证新鲜度已加 runId 主判据兜底；runId 缺失时 runAt 兜底，极端时钟异常仍可能误判。验收口径：已知边界，runId 匹配优先。待实现期模拟时钟回拨测试覆盖。
+10. **锁获取与 current-run.json 写入间崩溃（🟢 v0.2.8，回应 anthropic）**：archive-state 先 `CreateNew` 拿锁、再写本轮 `runId` 到 `current-run.json`。若进程在这两步之间崩溃，下一轮续锁时"锁内记录的 runId ≠ current-run.json 的 runId"（current-run.json 仍是上一轮或半写残值），必然触发 `LOCKED|` 进入人工清锁流程。**fail-closed 覆盖**（无安全风险——锁不释放则 sync 不跑，最坏停一轮），**仅人工清锁成本**（需走 §6 恢复手册四条件确认）。行为已定（§6 续锁规则已闭合），非待实测项，列此保持 §14 完整性风格一致。
+11. **prerelease-vs-REPAIR 优先级边界（🟡 v0.2.9，回应 anthropic P1-1）**：条件3（TARGET_PRERELEASE）排在条件5（REPAIR）之前。若某 CLI 本地 broken 且 `remote.latest` 被判为 prerelease（新项目暂只有 prerelease，或探测边界 bug），TARGET_PRERELEASE 先命中→REPAIR 永远排不上号，本地损坏安装无限期得不到修复，直到出现 stable 版本。此为 v0.2.8 修的"null 下沉卡死"的**同构问题**（都是"remote 端某状态导致 broken 本地走不到 REPAIR"），但当前 spec 只堵了 null 口子。**不重排顺序**：把 4/5（健康修复）提到 1-3（策略前提）前面会与 stable-only 冲突（broken 时强制装 prerelease 违反 stable-only 原则）。三 CLI（claude/codex/opencode）持续有 stable 发布，触发概率极低。**验收口径**：列为已知风险，不伪关闭；若实测出现 prerelease-only 期，需人工介入（手动 pin 到最近 stable 或等待 stable 发布）。
 
 ---
 
@@ -626,7 +685,10 @@ staging 保留最近 2 版；升级失败 → 不写新鲜凭证 → sync 不动
 | v0.2.4 | 2026-09-16 | GPT 治理评审复核：供应链强化+ZipSlip+pin 语义重写+证据链+恢复手册+RFC2119+schema 表+状态机图 | `SPEC-v0.2.4.md` |
 | v0.2.5 | 2026-09-16 | anthropic 治理评审复核：schema 总表补全、sha256 SHOULD 对齐、sync 异常隔离硬约束、behind if-elif 优先级、archive 保留 30 轮、GitHub 限流缓解+RATE_LIMITED、凭证新鲜度 runId 双判据、回退方向澄清、晋升闸定义补 pin、迁移 checklist | `SPEC-v0.2.5.md` |
 | v0.2.6 | 2026-09-16 | GPT 二次评审复核（对 v0.2.4）：时间字段例外说明、LICENSE 事实矛盾修正（仓库实有 AGPL-3.0）、威胁模型声明、checksum 解析 MUST 规则、state 文件 runId 关联（SHOULD）、斜杠约定澄清；驳回"路径插空"（渲染误读）与"交付物三层矛盾"（阶段状态） | `SPEC-v0.2.6.md` |
-| v0.2.7 | 2026-09-16 | GPT frozen-direction 评审复核（对 v0.2.6），朝冻结候选收敛：P0-1 GitHub API asset digest 主路径 MUST（gh api 实测验证）+ expectedSha256 schema 字段（保留 checksumAssetUrl 作 fallback）；P0-2 §14-1/6 实测闭合、§14-5 N=10、真未知风险不伪关闭（驳回"全部关闭"）；P0-3 verify 失败不写新鲜 runId 凭证；P1-4 marker→exitCode→文件副作用表（§8.1）；P1-5 Canonical Path 代码块；Checklist A-N 引为独立验收交付物 | `SPEC-v0.2.7.md`（本文件） |
+| v0.2.7 | 2026-09-16 | GPT frozen-direction 评审复核（对 v0.2.6），朝冻结候选收敛：P0-1 GitHub API asset digest 主路径 MUST（gh api 实测验证）+ expectedSha256 schema 字段（保留 checksumAssetUrl 作 fallback）；P0-2 §14-1/6 实测闭合、§14-5 N=10、真未知风险不伪关闭（驳回"全部关闭"）；P0-3 verify 失败不写新鲜 runId 凭证；P1-4 marker→exitCode→文件副作用表（§8.1）；P1-5 Canonical Path 代码块；Checklist A-N 引为独立验收交付物 | `SPEC-v0.2.7.md` |
+| v0.2.8 | 2026-09-16 | anthropic frozen-direction 评审复核（对 v0.2.7），冻结前最后消歧：🔴 §7.3 分支优先级歧义——`local.version==null` 不计入条件2"不可解析"，下沉至条件4/5，Compare-SemVer 对 null 由调用方前置判空（否则首次 seed 卡死）；🟡 §5.4 `matchesTarget` 各分支比较基准（ACTIONABLE/REPAIR 对 `upgrade.json.target`，UPTODATE_REFRESH 对 `local.version`）；🟡 §5.8 specVersion 不匹配处理（不作本轮决策依据消费、非 fatal、本轮覆盖迁移、checklist A 节断言据此修正）；🟢 §14-10 锁获取与 current-run.json 写入间崩溃（fail-closed 覆盖，行为已定）。观察项回应：冻结退出标准属项目治理 meta，不入 spec 主体 | `SPEC-v0.2.8.md` |
+| v0.2.9 | 2026-09-16 | anthropic 冻结评审复核（对 v0.2.8），闭合"文本已写但语义未闭合"缺口：🔴 P0-1 REPAIR target 语义——统一 `target=remote.latest`（与 ACTIONABLE 对齐，顺便修到最新），覆盖 broken+opencode-staging-空/broken+local-ahead 边界，§5.3 target 来源闭环；🔴 P0-2 verified.json channel schema 矛盾——§5.4 示例补 `"channel"`（自带通道，sync 无需跨文件判 sha256 MUST/SHOULD）；🟡 P1-1 prerelease-vs-REPAIR 优先级边界列 §14-11 风险（stable-only 后果，不重排）；🟡 P1-2 N=10 计数机制——新增 `opencode-npm-fallback.json`（consecutiveSyncSuccess 计数，sync 末步更新，达 10 卸载置 uninstalled=true 幂等）；🟢 P1-3 ALL_REMOTE_FAIL 聚合——RATE_LIMITED 与 REMOTE_FAIL 均计入 | `SPEC-v0.2.9.md` |
+| v0.2.10 | 2026-09-16 | CodeBuddy 独立审计复核（对 v0.2.9），扫清"schema 总表↔示例↔正文"三方一致性 + §7.3 分支完备性（全文字级修订，不涉架构）：🟡 D1 §5.9「全部」行收窄（error→local/remote/upgrade，name 补 sync，表补 entries[].name）；🟡 D2 fromVersion 类型 string→string\|null；🔴 D3 §7.3 条件7/8 改互补（7=有本轮新鲜→SKIP 仅同轮 re-probe 可达，8=无本轮新鲜→REFRESH 覆盖 stale-but-matching 空洞）+ else 兜底 + 输入清单补 verified/current-run；🟡 D4 §7.2 REPAIR `<ver>`→`<remote.latest>`；🟡 D5 §10.5 计数唯一规则（fatal 中断→不动，仅 sync 完整执行才 +1/归零）；🟡 D6 §5.4 三重约束②改 sync 可机械判定（sourceSha256==verified.sha256）；🟡 D7 §5 时间字段规则补 npm-fallback 例外（用 lastUpdatedAt）；🟢 D8 §8 FATAL 产出者补 upgrade/verify（schema 校验失败）；🟢 D9 ALL_REMOTE_FAIL 产出者钉死（agent/SOP 聚合，非单 CLI 脚本）；🟢 D10 REMOTE_FAIL 落盘补 assetName/checksumAssetUrl/fallbackUsed；🟢 D11 §5.2 策略5 拆 upgrade/verify 各写各 sha256；🟢 D12 §5.8 示例改跨版本值。驳回 D13（观察项，gh 定位属 SOP/实现期，§5 已允许 env 注入） | `SPEC-v0.2.10.md`（本文件） |
 
 ---
 
