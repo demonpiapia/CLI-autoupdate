@@ -1,0 +1,12 @@
+# 排除目录（本地临时/备份/工具/编辑器目录）
+.Exclusion/
+TEMP/
+.old/
+.backup/
+.doc/
+.usebackup/
+.git/
+.codebuddy/
+.workerbuddy/
+.vscode/
+.claude/
