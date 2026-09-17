@@ -1,8 +1,8 @@
 # CLI 自动升级 验收 checklist（候选）
 
-> **版本**：acceptance-checklist-candidate（对齐 `SPEC-v0.2.15.md`，2026-09-17）。
+> **版本**：acceptance-checklist-candidate（对齐 `SPEC-v0.2.17.md`，2026-09-17）。
 > **定位**：Executor/测试层产物。SPEC 是 Plan/契约（定义"该做什么"），本 checklist 是验收契约（定义"怎么证明做到了"），**不塞进 spec 主体**（守 spec 的 Plan/契约层定位，spec §15 引用本文件）。
-> **骨架来源**：GPT frozen-direction 评审 §3 Checklist A-N（基于 v0.2.6）+ v0.2.7 升级项（P0-1 API digest 主路径、P0-3 失败不覆盖、P1-4 §8.1 marker→exitCode→file 表、P1-5 Canonical Path、N=10）+ v0.2.8 anthropic 消歧（§7.3 null 下沉、§5.4 matchesTarget 基准、§5.8 specVersion 不匹配）+ v0.2.9 anthropic 冻结评审（P0-1 REPAIR target、P0-2 verified channel、P1-1 prerelease-vs-REPAIR、P1-2 N=10 计数、P1-3 ALL_REMOTE_FAIL 聚合）+ v0.2.10 CodeBuddy 审计复核（D1 schema/示例一致性、D2 fromVersion null 类型、D3 §7.3 条件7/8 互补+else 兜底、D4 §7.2 REPAIR `<ver>`、D5 计数唯一规则、D6 三重约束②可机械化、D7 npm-fallback 时间字段例外、D8 FATAL 产出者、D9 ALL_REMOTE_FAIL 产出者、D10 REMOTE_FAIL 落盘字段、D11 sha256 跨脚本拆分、D12 §5.8 示例跨版本）+ v0.2.11 GPT 审计复核（P0-1 exitCode 非权威 MUST、P0-2 run.lock processStartTimeUtc 双校验、P0-3 Compare-SemVer 正规化+测试表、P1-1 删 cite 占位符、P2 路径硬编码理由）+ v0.2.12 anthropic 审计复核（P0-1 锁接管逻辑修正伪代码、P0-2 processStartTimeUtc 升 MUST+fallback、P1-3 §8.1 ALL_REMOTE_FAIL 产出者对齐、P1-4 SemVer §11 precedence、P1-5 计数封顶、P2-1 sync.json runStatus、P2-2 pin mismatch 提醒、P2-3 DISK_FULL/EXE_LOCKED 阈值、P2-4 checksum 同名冲突 fail-closed、P2-5 版本历史日期说明、P2-6 伪代码落 spec）+ v0.2.13 CodeBuddy 审计复核（CB-P1-1 §6 异常分型、CB-P1-2 时间比较钉死 UTC 'o'+Ticks、CB-P2-1 计数完全冻结、CB-P2-2 runStatus 语义收窄+联判、CB-P2-3 target-locked 落盘钉死、CB-P2-4 新鲜度收紧 runId 唯一必要、CB-P3-1 pin mismatch 数据源、CB-P3-2 分支断言扩充、CB-P3-3 §0 仓库声明修正、CB-P3-4 Codex 大小写注、CB-P3-5 checksum 期望值落盘）+ v0.2.14 Cherry 审计复核（CH-P1-1 run.lock JSON 格式+schema、CH-P1-2 ARCHIVE_OK 成功标记、CH-P1-3 驳回实测固化〔DateTime 'o' 自洽/禁 DateTimeOffset〕、CH-P2-1 re-probe 可达性注、CH-P2-2 冻结态措辞、CH-P2-3 §14 编号注）+ v0.2.15 GPT 审计复核（GPT-P0-1 Cherry mise 环境契约、GPT-P0-2 标记行语法六条、GPT-P0-3 name 语义注记〔驳回改名〕、GPT-P1-1 时间字段格式统一、GPT-P1-2 版本格式突变处置、GPT-P1-3 驳回〔单页总览〕、GPT-§4 未来增强入口）。
+> **骨架来源**：GPT frozen-direction 评审 §3 Checklist A-N（基于 v0.2.6）+ v0.2.7 升级项（P0-1 API digest 主路径、P0-3 失败不覆盖、P1-4 §8.1 marker→exitCode→file 表、P1-5 Canonical Path、N=10）+ v0.2.8 anthropic 消歧（§7.3 null 下沉、§5.4 matchesTarget 基准、§5.8 specVersion 不匹配）+ v0.2.9 anthropic 冻结评审（P0-1 REPAIR target、P0-2 verified channel、P1-1 prerelease-vs-REPAIR、P1-2 N=10 计数、P1-3 ALL_REMOTE_FAIL 聚合）+ v0.2.10 CodeBuddy 审计复核（D1 schema/示例一致性、D2 fromVersion null 类型、D3 §7.3 条件7/8 互补+else 兜底、D4 §7.2 REPAIR `<ver>`、D5 计数唯一规则、D6 三重约束②可机械化、D7 npm-fallback 时间字段例外、D8 FATAL 产出者、D9 ALL_REMOTE_FAIL 产出者、D10 REMOTE_FAIL 落盘字段、D11 sha256 跨脚本拆分、D12 §5.8 示例跨版本）+ v0.2.11 GPT 审计复核（P0-1 exitCode 非权威 MUST、P0-2 run.lock processStartTimeUtc 双校验、P0-3 Compare-SemVer 正规化+测试表、P1-1 删 cite 占位符、P2 路径硬编码理由）+ v0.2.12 anthropic 审计复核（P0-1 锁接管逻辑修正伪代码、P0-2 processStartTimeUtc 升 MUST+fallback、P1-3 §8.1 ALL_REMOTE_FAIL 产出者对齐、P1-4 SemVer §11 precedence、P1-5 计数封顶、P2-1 sync.json runStatus、P2-2 pin mismatch 提醒、P2-3 DISK_FULL/EXE_LOCKED 阈值、P2-4 checksum 同名冲突 fail-closed、P2-5 版本历史日期说明、P2-6 伪代码落 spec）+ v0.2.13 CodeBuddy 审计复核（CB-P1-1 §6 异常分型、CB-P1-2 时间比较钉死 UTC 'o'+Ticks、CB-P2-1 计数完全冻结、CB-P2-2 runStatus 语义收窄+联判、CB-P2-3 target-locked 落盘钉死、CB-P2-4 新鲜度收紧 runId 唯一必要、CB-P3-1 pin mismatch 数据源、CB-P3-2 分支断言扩充、CB-P3-3 §0 仓库声明修正、CB-P3-4 Codex 大小写注、CB-P3-5 checksum 期望值落盘）+ v0.2.14 Cherry 审计复核（CH-P1-1 run.lock JSON 格式+schema、CH-P1-2 ARCHIVE_OK 成功标记、CH-P1-3 驳回实测固化〔DateTime 'o' 自洽/禁 DateTimeOffset〕、CH-P2-1 re-probe 可达性注、CH-P2-2 冻结态措辞、CH-P2-3 §14 编号注）+ v0.2.15 GPT 审计复核（GPT-P0-1 Cherry mise 环境契约、GPT-P0-2 标记行语法六条、GPT-P0-3 name 语义注记〔驳回改名〕、GPT-P1-1 时间字段格式统一、GPT-P1-2 版本格式突变处置、GPT-P1-3 驳回〔单页总览〕、GPT-§4 未来增强入口）+ v0.2.16 anthropic 审计复核（A1 §6 StartTime try/catch、A2 §5.4 mise 完整性②、B1 §7.3 TARGET_PRERELEASE 通道分流、C1 §6 停摆窗口分两类、E1 §10.5 npm 卸载失败处置、E2 §10.5 npm 不依赖 PATH、F1 §10.5 计数细粒度、G1 §5.1 healthy 不变量、H1 §7.1 mise.exe 跨盘成因、H2 §7.2 mise upgrade 语法待实测、H3 §6 续锁段粒度、H4 §5 Authorization 脱敏、H5 §5.2 digest 非 sha256 回退、H6 §5.5 reason 枚举、H7 §13 .old/ 复用判定；驳回 D1 §14 编号）+ v0.2.17 GPT 审计复核（3.1 remote.json prerelease 落盘〔采纳〕、3.2 expectedSha256 消歧〔采纳加说明不改名，驳回 zipSha256〕、3.3 integrityNote sha256-missing-skip〔采纳〕、4.1 reason 统一句式〔部分采纳，驳回 unknown/other 保底〕、4.2 healthy 阈值经验值注〔采纳〕、4.3 §9 铁律只信 RUN_STATUS〔采纳〕、5.3 H4 异常对象序列化禁令〔轻量采纳〕；驳回 5.1/5.2〔实现期 helper〕）。
 > **用法**：Pester 或自写 harness 实现断言。约定 `<cli>` ∈ {claude, codex, opencode}；state 根目录 `D:/AI/Workspace/automatic/CLI-autoupdate/state/`；promotion 入口 `D:/AI/Programs/CLI/<cli>/<cli>.exe`。路径示例用正斜杠（spec §4 Canonical Path 已认可，agent 调 `-File` 用正斜杠）。
 > **每条四栏**：条款（spec 节号 + MUST/SHOULD）｜ 可观测证据（json 字段 / stdout 标记 / 文件副作用，锚 §8.1 对照表）｜ 测试用例（输入状态 → 预期标记+exitCode+文件副作用）｜ 判断（设计理由，把推理落盘防上下文压缩丢失）。
 > **状态标记**：`[ ]` 待实现断言；`[x]` 已有 fixture/已验证；`⚠` 依赖实现期实测（对齐 §14"已知风险声明"）。
@@ -13,10 +13,10 @@
 
 | 条款 | 证据 | 测试用例 | 判断 |
 |---|---|---|---|
-| 脚本清单齐全：`cli-common-v0.2.15.ps1`/`archive-state.ps1`/`sync-v0.2.15.ps1`/`probe-local-*.ps1`/`probe-remote-*.ps1`/`upgrade-*.ps1`/`verify-*.ps1`（§7） | 文件存在性（fd/`Test-Path`） | 列工作区根，断言 7 类文件存在 | GPT A 升级到 v0.2.15 文件名；version 字段一致性是回归基线 |
-| 脚本版本钉死：共享库与 sync 文件名含 `-v0.2.15`；per-cli 脚本首行 `$ScriptVersion='0.2.15'` + `# SPEC: v0.2.15`（§7.4） | 文件名 + 首行 grep | `rg "^# SPEC: v0\.2\.15"` 各脚本 | 防实现期版本漂移；specVersion 是跨版本追溯锚 |
-| 所有 state JSON 顶层 `specVersion:"0.2.15"` + `name`（§5）——🔴 v0.2.10 D1：`name` 例外——sync.json 顶层用 `name:"sync"`；🟢 v0.2.15 GPT-P0-3：current-run.json `name`=任务名（固定 `<cli-autoupdate>`，§5.9 独立行——与其他文件 CLI 名语义不同，断言 MUST 分开编写）；`error` 仅 local/remote/upgrade 必带，verified/sync/current-run/pin/npm-fallback 不带 error | JSON 字段 | 遍历 state/*.json 断言两字段（按文件判 name/error 适用性） | 跨版本 schema 标识；D1 闭合 §5.9「全部」行与示例矛盾（P0-2 同族） |
-| **旧 specVersion 处理（🟡 v0.2.8，回填 anthropic——修正原 A 节"触发 fail-closed"脑补）**：state 文件 specVersion≠当前 → 视为陈旧，MUST NOT 作本轮决策依据消费（probe 类本轮覆盖；verified.json 不作晋升凭证——runId 新鲜度天然拦 + specVersion 第二道保险）；**非 fatal、非 PARSE_ERROR**，本轮覆盖写回当前 specVersion 即迁移（§5.8） | 旧 specVersion 文件不被消费 + 本轮覆盖回写 | 预置 `"specVersion":"0.2.14"` 的 verified.json，本轮跑 sync，断言：①不以其为晋升凭证（runId 不匹配天然拦）②本轮 verify 产出新 `"specVersion":"0.2.15"` 覆盖 | **原 checklist A 节断言"旧 specVersion 触发 fail-closed"系脑补**——spec §5/§5.8 无此硬约束；v0.2.8 §5.8 已回填真实契约：specVersion 漂移是版本演进正常现象，文件完整可解析仅"内容不再可信"，非 schema 损坏。fail-closed 仅针对字段缺失/类型错（§5.8 RUNTIME_ERROR_FATAL schema）。v0.2.15 §5.8 示例为跨版本值（`"0.2.14"` vs `"0.2.15"`） |
+| 脚本清单齐全：`cli-common-v0.2.17.ps1`/`archive-state.ps1`/`sync-v0.2.17.ps1`/`probe-local-*.ps1`/`probe-remote-*.ps1`/`upgrade-*.ps1`/`verify-*.ps1`（§7） | 文件存在性（fd/`Test-Path`） | 列工作区根，断言 7 类文件存在 | GPT A 升级到 v0.2.15 文件名；version 字段一致性是回归基线 |
+| 脚本版本钉死：共享库与 sync 文件名含 `-v0.2.17`；per-cli 脚本首行 `$ScriptVersion='0.2.17'` + `# SPEC: v0.2.17`（§7.4） | 文件名 + 首行 grep | `rg "^# SPEC: v0\.2\.17"` 各脚本 | 防实现期版本漂移；specVersion 是跨版本追溯锚 |
+| 所有 state JSON 顶层 `specVersion:"0.2.17"` + `name`（§5）——🔴 v0.2.10 D1：`name` 例外——sync.json 顶层用 `name:"sync"`；🟢 v0.2.15 GPT-P0-3：current-run.json `name`=任务名（固定 `<cli-autoupdate>`，§5.9 独立行——与其他文件 CLI 名语义不同，断言 MUST 分开编写）；`error` 仅 local/remote/upgrade 必带，verified/sync/current-run/pin/npm-fallback 不带 error | JSON 字段 | 遍历 state/*.json 断言两字段（按文件判 name/error 适用性） | 跨版本 schema 标识；D1 闭合 §5.9「全部」行与示例矛盾（P0-2 同族） |
+| **旧 specVersion 处理（🟡 v0.2.8，回填 anthropic——修正原 A 节"触发 fail-closed"脑补）**：state 文件 specVersion≠当前 → 视为陈旧，MUST NOT 作本轮决策依据消费（probe 类本轮覆盖；verified.json 不作晋升凭证——runId 新鲜度天然拦 + specVersion 第二道保险）；**非 fatal、非 PARSE_ERROR**，本轮覆盖写回当前 specVersion 即迁移（§5.8） | 旧 specVersion 文件不被消费 + 本轮覆盖回写 | 预置 `"specVersion":"0.2.14"` 的 verified.json，本轮跑 sync，断言：①不以其为晋升凭证（runId 不匹配天然拦）②本轮 verify 产出新 `"specVersion":"0.2.17"` 覆盖 | **原 checklist A 节断言"旧 specVersion 触发 fail-closed"系脑补**——spec §5/§5.8 无此硬约束；v0.2.8 §5.8 已回填真实契约：specVersion 漂移是版本演进正常现象，文件完整可解析仅"内容不再可信"，非 schema 损坏。fail-closed 仅针对字段缺失/类型错（§5.8 RUNTIME_ERROR_FATAL schema）。v0.2.15 §5.8 示例为跨版本值（`"0.2.14"` vs `"0.2.17"`） |
 
 ---
 
@@ -206,7 +206,7 @@
 
 ---
 
-## K. sync-v0.2.15.ps1（晋升闸 + 证据链 + 异常隔离 + npm fallback 计数）
+## K. sync-v0.2.17.ps1（晋升闸 + 证据链 + 异常隔离 + npm fallback 计数）
 
 ### K1 三重约束（晋升闸）
 
@@ -364,7 +364,7 @@
 | **🟢 D9 ALL_REMOTE_FAIL 产出者钉死**：由 agent/SOP 聚合判定（非单 CLI 脚本）（§8） | spec 文本 + H3 | H3 case：三 CLI 全败，断言 ALL_REMOTE_FAIL 由 SOP 聚合产出 | probe-remote 每 CLI 独立，单脚本无法知"三全败" |
 | **🟢 D10 REMOTE_FAIL 落盘字段全**：assetName/checksumAssetUrl=null, fallbackUsed=false 等必填字段占位（§5.2/§8.1） | spec 文本 + H2 | H2 REMOTE_FAIL case 断言 §5.9 必填字段全在 | 原 §5.9 列必填但落盘语义未声明取值 |
 | **🟢 D11 sha256 跨脚本拆分**：upgrade 写 upgrade.json.sha256，verify 复算写 verified.json.sha256（§5.2） | spec 文本 + I2 | I2 case 断言两文件各写各 sha256 且一致 | 原"解压后写 verified.json.sha256"可误读 upgrade 越界 |
-| **🟢 D12 §5.8 示例跨版本**：`"0.2.14" vs "0.2.15"`（§5.8；随 spec 升版同步刷新值，断言点=两侧不同值） | spec 文本 | 审查 §5.8 示例两侧不同值 | 原同值示例失意义（机械替换所致） |
+| **🟢 D12 §5.8 示例跨版本**：`"0.2.14" vs "0.2.17"`（§5.8；随 spec 升版同步刷新值，断言点=两侧不同值） | spec 文本 | 审查 §5.8 示例两侧不同值 | 原同值示例失意义（机械替换所致） |
 | **驳回 D13**：观察项——gh/mise 不在审计 shell PATH 属审计局限；"gh 定位方式"属 SOP/实现期，§5 已允许 env 注入，不入 spec 主体 | — | — | 非文档缺陷；实现期 SOP 处理 gh 绝对路径/env 注入 |
 
 ---
@@ -378,7 +378,7 @@
 | **🟡 P0-1 exitCode 非权威 MUST**：整轮成功/失败判定各层以 `RUN_STATUS|...` 标记为准，exitCode MUST NOT 参与成功判定；SOP/定时任务层明确"只解析 RUN_STATUS"（§8） | spec §8 MUST 断言 + SOP 文本 | 构造 exitCode=11 但无 RUN_STATUS 的异常 case → 按保守 fatal 处理（非判成功）；构造 `RUN_STATUS|success|` exitCode=2 case → 判成功 | 外部调度器默认 exitCode!=0 标红会误告警/误重跑；option B（改 exitCode 表）驳回＝破坏 §8.1 对照表 |
 | **🟡 P0-2 run.lock processStartTimeUtc 双校验**：run.lock 含 `processStartTimeUtc`（SHOULD）；陈锁接管 PID 死亡判定加 startTime 匹配——`Get-Process -Id` 命中后比对 `Process.StartTime` 与锁内值，不匹配→保守 `LOCKED|`（§6） | run.lock 字段 + 接管行为 | 构造陈锁（beat 超 30min）+ 启动无关进程占同 PID（startTime 不匹配）→ 断言拒接管 `LOCKED|`、不删活锁；同 PID 同 startTime 进程已死 → 接管 | PID 重用误接管风险压极低；spec 本已 fail-closed（误接管→拒→LOCKED＝假阴性方向），故降 P0→P1 |
 | **🟡 P0-3 Compare-SemVer 正规化 + 测试表**：§7.1 12 条"输入→期望输出"表照表打（§7.1） | spec §7.1 测试表 | 用 §7.1 表 12 条 case 跑 `Compare-SemVer`，断言返回值全匹配（含 v 前缀/prerelease/build 忽略/缺 patch incomparable/4+段 incomparable） | 消除"同输入不同实现→不同分支"验收争议；build 元数据＝忽略非 incomparable（与 SemVer 规范一致） |
-| **🟢 P1-1 删 cite 占位符**：§5.2/§17 无 `[cite:...]` 内部占位；"2025-06-03 起"软化为实测措辞（§5.2/§17） | spec 文本 grep | `rg "cite:" SPEC-v0.2.15.md` 断言 0 命中；§5.2/§17 digest 段落措辞改实测依据 | 内部 cite 占位损文档自洽/可审计性 |
+| **🟢 P1-1 删 cite 占位符**：§5.2/§17 无 `[cite:...]` 内部占位；"2025-06-03 起"软化为实测措辞（§5.2/§17） | spec 文本 grep | `rg "cite:" SPEC-v0.2.17.md` 断言 0 命中；§5.2/§17 digest 段落措辞改实测依据 | 内部 cite 占位损文档自洽/可审计性 |
 | **🟢 P2 路径硬编码理由**：§0 明示"路径写死是有意选择（减变量、提可验收性）"，非缺陷（§0） | spec §0 文本 | 审查 §0 有理由句 | 防旁观者当缺陷提无意义 issue |
 | **§15 PID 重用/锁误接管模拟用例**：单元测试覆盖陈锁+同 PID 新进程→拒接管（§15） | 测试用例存在 | 实现 §15 测试用例 | GPT 验收建议 3 例中此例新增；时钟回拨（§14-8 已覆盖）、specVersion 漂移（A 节已覆盖） |
 | **驳回 P1-2（cause 全枚举）**：运行时 cause 是开放集合（download/zip-slip/digest-mismatch 等已枚举关键类），全枚举不可行且过度；自由文本仅日志不影响 marker 契约 | — | — | GPT 建议 cause 三层枚举+marker 末尾 detail= 字段＝过度工程；spec marker 的 `<cause>` 已对关键失败类枚举化，自由文本限日志 |
@@ -456,6 +456,23 @@
 
 ---
 
+## O10. v0.2.17 GPT 审计专项验收（prerelease 落盘 + hash 消歧 + integrityNote + reason 句式 + healthy 阈值 + RUN_STATUS 铁律 + 异常对象脱敏）
+
+> 本节专验 v0.2.17 相对 v0.2.16 的闭合点（GPT 独立审计，9 项：采纳 6、部分采纳 1、轻量采纳 1、驳回 2），全契约层字段/枚举/消歧补全，不改判定语义、不改 §6 锁逻辑。
+
+| 条款 | 证据 | 测试用例 | 判断 |
+|---|---|---|---|
+| **🟡 GPT-3.1（P1，采纳）remote.json `prerelease` 落盘**：probe-remote 落盘 API `.prerelease` 布尔到 `remote.json.prerelease`；upgrade 判条件3 读此字段不重打 API（§5.2/§5.9/§7.3 B1） | remote.json.prerelease 字段 | ① mock github release prerelease=true → 断言 remote.json.prerelease==true 且条件3 命中 TARGET_PRERELEASE ② mock prerelease=false → 字段==false，不命中条件3 ③ mock API 不返回 prerelease → 字段==null，回退字符串启发式 ④ mise 通道 remote.json.prerelease==null | 闭合 B1 与 §1 原则2 数据固化契约不一致——B1 优先信任 API prerelease 但字段未持久化致 upgrade 要么重打 API 要么退回启发式 |
+| **🟢 GPT-3.2（采纳加说明不改名）hash 对象消歧**：`expectedSha256`（zip/asset hash）与 `upgrade.json.sha256`/`verified.json.sha256`（staging exe hash）MUST NOT 互比；§5.4 完整性② 仅 `sourceSha256==verified.sha256`（§5.2） | spec §5.2 文本 + 实现无交叉比较 | 审查实现代码：断言无 `expectedSha256 -eq verified.sha256` 比较语句 | 改名 expectedAssetSha256 破坏多处历史引用+checklist 断言+schema 稳定性=过度工程；驳回 zipSha256 额外字段（integrityNote 已够审计） |
+| **🟢 GPT-3.3（采纳）integrityNote sha256-missing-skip**：mise 通道 sha256=null 跳过②时 MUST 写 `sha256-missing-skip`（§5.5/§5.9） | sync.json.entries[].integrityNote | mock mise 通道 verified.sha256=null → 断言对应 entry integrityNote==`sha256-missing-skip`；非空 sha256 跳过②时 MUST NOT 该值 | 闭合 §5.4 A2 可追溯性——否则"为何跳过 sha256 一致性"成黑箱 |
+| **🟡 GPT-4.1（部分采纳）reason 统一句式**：`action="copy"`→reason MUST null；`skip`→∈枚举；`target-locked`→非空（§5.9）；**驳回 unknown/other 保底** | sync.json.entries[].reason | ① copy entry → reason==null ② skip entry → reason∈{no-fresh-credential,pinned-mismatch,already-current} ③ target-locked → reason 非空字符串 | skip 枚举已闭合，保底破坏"reason∈枚举可机械断言"+掩盖 bug=过度工程 |
+| **🟢 GPT-4.2（采纳）healthy 阈值经验值注**：§5.1 >1MB 注"三款 CLI 经验值"（§5.1） | spec §5.1 文本 | 审查 §5.1 含"经验值"注 | 防未来新增 CLI 误搬阈值 |
+| **🟢 GPT-4.3（采纳）§9 铁律第9条**：只解析 RUN_STATUS 判终态，exitCode 非权威（§9 铁律9，与 §8 P0-1 同源） | §9 铁律列表含第9条 | 审查 §9 含第9条；agent 汇报终态取 RUN_STATUS 非 exitCode | 作铁律补条非 §8 摘要重复，避免双源漂移 |
+| **🟢 GPT-5.3（轻量采纳）异常对象序列化禁令**：日志 MUST NOT `$_\|Out-String` 整对象，仅记异常类型名+Message 摘要（§5 H4） | fetch_run.log 无请求头 dump | mock HTTP 异常 → 断言日志含 `Authorization: <redacted>` 且无整异常对象序列化 | PowerShell catch 后 `$_\|Out-String` dump 请求头实战坑 |
+| **🟢 GPT-5.1/5.2（驳回）实现期 helper**：Write-StateJsonAtomic/时间 helper+Pester 属实现期；§5.8 已 MUST 原子写入 + §7.1 已列助手 + §15 已列断言 | spec 不含 helper 签名 | 审查 spec 主体无 Write-StateJsonAtomic/to-UtcIsoO 签名（属 Executor 自治） | spec=Plan/契约层（§0），不写实现细节；驳回有真实依据 |
+
+---
+
 ## P. 待实测项（⚠ 依赖实现期，对齐 §14 知名风险声明）
 
 | 条款 | 证据 | 测试用例 | 判断 |
@@ -470,7 +487,7 @@
 
 ## 收尾
 
-- 本 checklist 是 **candidate**（候选），与 SPEC-v0.2.15 同阶段，随评审迭代。
+- 本 checklist 是 **candidate**（候选），与 SPEC-v0.2.17 同阶段，随评审迭代。
 - 实现期产出 Pester 骨架时，每条转 `Describe/It` + fixture 生成器 + stdout 捕获 + JSON schema 断言。
 - §14 知名风险项（§P）在实现期实测后，若口径变化须回流 spec（架构层）+ 本 checklist（验收层）双更新。
-- 版本号：本 checklist 对齐 `SPEC-v0.2.15`；spec 升版时本文件同步升版。
+- 版本号：本 checklist 对齐 `SPEC-v0.2.17`；spec 升版时本文件同步升版。
