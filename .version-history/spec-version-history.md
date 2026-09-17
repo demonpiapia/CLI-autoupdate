@@ -24,6 +24,8 @@
 - [v0.2.17-rc2](#v0-2-17-rc2)
 - [v0.2.18-rc1](#v0-2-18-rc1)
 - [v0.2.18-rc2](#v0-2-18-rc2)
+- [v0.2.18-rc3](#v0-2-18-rc3)
+- [v0.2.19](#v0-2-19)
 
 ---
 
@@ -165,6 +167,18 @@
 - 摘要：trae 独立审计修正轮（对 v0.2.18-rc1，`SPEC-v0.2.18-rc1-trae-review.md`；13 项发现独立复核后采纳 12、驳回 1）：T1（P1）§14 已闭合清单恢复 rc2 历史连续编号 {1,4,5,6,7,9,13,14}（rc1 误重排为 {1..8} 违反自身"保留不重排"规则，与已知风险 2/3/8 撞号、§14-6 自引失准、正文活锚 §14-1/10/11/12 全部指错对象），§14-14 内部引用同步 §14-13；T2（P1）§9 推送策略 sha256 禁令收窄为敏感凭证（token/Authorization 类），sha256 明确为证据链组成部分按 §5.5/模板 3 正常写入与推送（消除与 §1 原则8/§5.5/§9 模板3/§11 的 MUST 级冲突）；T3（P1）§7.2 骨架级失败清单收窄，锁争取/续取失败归 `LOCKED|`（§8 表 RUNTIME_ERROR_FATAL 行同步），消除与 §6/§8/§9 铁律7 的双标记冲突；T4（P2）§5.5 补 already-current 机械判据（D 盘 exe 复算 sha256 == sourceSha256 → SYNC_SKIP|already-current，pin/非 pin 统一，防稳态轮空翻新 copy 卡死 §10.5 npm 卸载目标），§5.7 补交叉引用；T5（P3）§8.1 补 UPTODATE_REFRESH 行 + 未列标记兜底语义注（覆盖各段 LOCKED/PARSE_ERROR/STATE_MISSING 副作用行缺失）；T6（P3）§5.2 回退方向说明 standalone→single-source 与权威枚举对齐；T7（P3）§16 术语表"标记行语法"行未转义竖线符改写（§7.2 probe-remote 单元格同类问题顺带修复）；T8（P3）current-run.json name 字面值钉死 `cli-autoupdate`（不含角括号，§5.6 注/§5.9/示例三处）；T9（P3）§9 状态机段B/段C 补 `LOCKED|` fatal 出口；T10（P3）§7.2 ACTIONABLE 实测断言扩展（@latest 实装版本 MUST == remote.latest，不等则改 mise install --force）；T11（P3）§5.9 entries[].ok 非 copy 条目 MAY 省略或 null；T13（P3）§5.5 补 summary 四计数口径定义 + entries 覆盖三 CLI + 示例自洽修正（failed=0、补 claude skip 条目）。**驳回 1**——T12（头部规则1 与版本历史边界）：审计所称"§16 版本历史"在被审计文件中不存在（版本历史已按用户规则移至 `.version-history/`，正文 §16 为术语表），所指冲突对象缺失，驳回不成立。判定语义主轴/§6 锁逻辑/§7.3 九分支结构不动
 - 文件：`SPEC-v0.2.18-rc2.md`
 
+<a id="v0-2-18-rc3"></a>
+### v0.2.18-rc3
+- 日期：2026-09-17
+- 摘要：GPT 对 rc2 盲审复核轮（P0-1 §14 历史化部分采纳、P1-1 ALL_REMOTE_FAIL 单口径采纳、P1-2 去 immutable 采纳、P1-3 File.Replace SHOULD 采纳、P2-1 表格密度重构驳回；attestation 叠加关系采纳）：§14 标题审计来源清单删除、条目去删除线、编号说明改"正文 §14-N 活锚稳定性"（§14-1/6/10/11/12 五个活锚保留）；§8/§8.1/§15 钉死 ALL_REMOTE_FAIL 仅由 stdout 标记聚合；§5.8 补原子替换建议（SHOULD）；§5.10 补 attestation 叠加门槛；正文审计编号引用语义化（P0-3/P0-1/P0 v0.2.8/F1）、失效锚点 §17→§16。
+- 文件：`SPEC-v0.2.18-rc3.md`
+
+<a id="v0-2-19"></a>
+### v0.2.19
+- 日期：2026-09-17
+- 摘要：双审计合并裁断修订轮——输入 `SPEC-v0.2.18-rc3-codebuddy-review.md`（含 candidate 盲审）与 `.supervisor/spec-v0.2.18-rc3-anthropic-review.md`，按 `SPEC-v0.2.18-rc3-review-final.md` 的 F1–F25 逐项落地：F1 §10.5 卸载目标包名定死 `opencode-ai` + 成功判据改结果断言（依据：对未安装包名卸载实测 exit=0 且不影响已装包）；F2 §5 新增"API 元数据 MUST 直连 `api.github.com`、仅 asset 下载走反代"信道分离约束；F3 §5.7/§10.1/§10.2/§10.3 回退与 pin 语义重写（可达性边界 + 三步回退流程 + 禁 `mise use` 作回退手段 + pin 免疫清理）；F4 §5.3 新增 `downloadMode` 字段并打通 sync `integrityNote` 转写；F5 `entries[].sourceSha256` 升为 copy 条目必填（两通道）；F15 删除无定义的 `sha256-recomputed`；F6 §7.1 补 npm/node/gh 定位常量（不依赖 PATH）；F7 §7.2 补旧版本清理职责（保留策略由模块落实）；F8 §5.8 补 File.Replace 目标不存在分支；F9 §14-6 校正 checksum 资产实测缺席；F10 §12 供应链行对齐现行三级链、§7.3 条件7/8 段改终态表述；F11 §5.10 补通道保护水平差异声明；F12 §8 DISK_FULL 阈值绑卷并与制品体积关联；F13 §7.1 补版本目录识别规则（排除别名文件/接受 Junction）、§7.2/§16 表格多余空列移除；F14 gh 定位与认证账户事实校准；F16 REMOTE_FAIL `fallbackUsed` 改按实际回退状态落盘；F17 asset 精确名筛选；F18 §15/§6 负例断言措辞精确化；F19 §8 补 dry-run 语义、§8.1 SYNC_SKIP 退出码单值化；F20 `R43` 未定义引用与跨文档断言引用改写；F21 §1 原则3 补 ALL_REMOTE_FAIL 唯一例外；F22 AGPL 表述精确化（实测仓库 public）；F23 attestation 命令升级为"本机实测存在"；F24 回填 `mise upgrade @latest` 与 mise prerelease 实测结论；§14 补"冷 pin"已知边界、§14-5 事实校准；§15 断言集扩充（卸载结果/downloadMode/保留策略/pin 边界）；版本串全域升为 v0.2.19（`specVersion` = `"0.2.19"`）。未执行项：§5.9 的 `<br />` 单元格占位保留（与全文空单元格写法保持一致，按"不强制历史表格转换"口径）。
+- 文件：`SPEC-v0.2.19.md`
+
 ### 版本历史日期说明
 
-> **v0.2.12 P2-5（版本历史日期说明）**：v0.1–v0.2.14 标注 2026-09-16、v0.2.15/v0.2.16/v0.2.17 标注 2026-09-17——v0.1–v0.2.14 系同日跨模型审计密集收敛（设计日），v0.2.15/v0.2.16/v0.2.17 为次日复核轮（GPT 审 v0.2.14→产 v0.2.15；anthropic 审 v0.2.15→产 v0.2.16；GPT 审 v0.2.16→产 v0.2.17；CodeBuddy 审 v0.2.17→产 v0.2.17-rc1，同日修正轮；CodeBuddy RE-Review 复审 rc1 审计报告→据其 R1–R6 产 v0.2.17-rc2，同日修正轮；CodeBuddy 审 v0.2.17-rc2→据其 W1–W6 产 v0.2.18-rc1，同日修正轮；trae 审 v0.2.18-rc1→据其产 v0.2.18-rc2，同日修正轮）。日期列精度为"日"，外部审计者如需迭代节奏，可按版本号顺序（每轮一行）追溯；后续进入实现期的 SOP/脚本版本将带时分。
+> **v0.2.12 P2-5（版本历史日期说明）**：v0.1–v0.2.14 标注 2026-09-16、v0.2.15/v0.2.16/v0.2.17 标注 2026-09-17——v0.1–v0.2.14 系同日跨模型审计密集收敛（设计日），v0.2.15/v0.2.16/v0.2.17 为次日复核轮（GPT 审 v0.2.14→产 v0.2.15；anthropic 审 v0.2.15→产 v0.2.16；GPT 审 v0.2.16→产 v0.2.17；CodeBuddy 审 v0.2.17→产 v0.2.17-rc1，同日修正轮；CodeBuddy RE-Review 复审 rc1 审计报告→据其 R1–R6 产 v0.2.17-rc2，同日修正轮；CodeBuddy 审 v0.2.17-rc2→据其 W1–W6 产 v0.2.18-rc1，同日修正轮；trae 审 v0.2.18-rc1→据其产 v0.2.18-rc2，同日修正轮；GPT 审 v0.2.18-rc2→据其产 v0.2.18-rc3；CodeBuddy 与 anthropic 对 v0.2.18-rc3 双审计→据合并裁断（`SPEC-v0.2.18-rc3-review-final.md`）产 v0.2.19，同日修正轮）。日期列精度为"日"，外部审计者如需迭代节奏，可按版本号顺序（每轮一行）追溯；后续进入实现期的 SOP/脚本版本将带时分。
